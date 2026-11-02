@@ -1,0 +1,10 @@
+name = "salehinsc-api"
+main = "worker/index.mjs"
+compatibility_date = "2026-11-02"
+workers_dev = true
+
+[vars]
+GITHUB_REPOSITORY = "MB-Bidram/SalehinSc"
+GITHUB_BRANCH = "main"
+DATA_PATH = "data/portal.json"
+ALLOWED_ORIGIN = "https://mb-bidram.github.io"

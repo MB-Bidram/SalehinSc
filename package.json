@@ -1,0 +1,17 @@
+{
+  "name": "salehinsc-static-portal",
+  "version": "4.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "check": "node --check config.js && node --check backend.js && node --check role-backend.js && node --check app.js && node --check qr-code.js && node --check preview.js && node --check sw.js && node --check scripts/publish-request.cjs && node --check scripts/bootstrap-portal.cjs && node --check scripts/split-student-data.cjs",
+    "serve": "python -m http.server 8080 --bind 127.0.0.1",
+    "bootstrap": "node scripts/bootstrap-portal.cjs",
+    "migrate:data-split": "node scripts/split-student-data.cjs"
+  },
+  "devDependencies": {
+    "@fontsource/vazirmatn": "^5.3.0",
+    "fake-indexeddb": "^6.2.7",
+    "linkedom": "^0.18.14"
+  }
+}

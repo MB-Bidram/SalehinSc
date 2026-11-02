@@ -1,0 +1,21 @@
+node_modules/
+*.log
+salehinsc-encrypted-keys*.json
+salehinsc-keybook-private*.json
+salehinsc-student-records-private*.json
+salehinsc-student-records-private*.csv
+
+# Private QR credentials and generated QR cards (contain bearer access secrets)
+*-private-qr*.csv
+private-qr-*.csv
+private-qr-cards/
+salehinsc-qr-cards/
+# Privileged staff QR exports
+salehin-staff-qr.svg
+staff-access.svg
+.staff-credentials/
+
+# QR files are access credentials, never commit them
+salehin-student-qr.svg
+*-student-qr*.svg
+*-staff-qr*.svg

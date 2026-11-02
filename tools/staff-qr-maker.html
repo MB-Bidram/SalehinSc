@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ساخت QR مشترک دبیران | صالحین</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:28px 16px;background:#f2f2ef;color:#28322b;font:14px/1.9 Tahoma,Arial,sans-serif}
+main{max-width:560px;margin:28px auto;background:#fff;padding:26px;border:1px solid #d9ddd6}
+h1{font-size:22px;margin:0 0 4px}p{margin:5px 0 18px;color:#69736b;font-size:12px}
+label{display:grid;gap:7px;margin:14px 0;font-size:12px;font-weight:700}
+input,textarea{width:100%;padding:11px;border:1px solid #cbd1c9;border-radius:4px;background:white;color:#252e28;font:12px Tahoma,Arial,sans-serif}
+textarea{min-height:90px;resize:vertical;direction:ltr;text-align:left}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+button{border:1px solid #cbd1c9;border-radius:4px;background:#f2f3f0;color:#35443a;padding:10px 15px;font:700 12px Tahoma,Arial,sans-serif;cursor:pointer}
+button.primary{background:#315c49;color:white;border-color:#315c49}
+button:disabled{opacity:.45;cursor:not-allowed}
+#preview{display:grid;place-items:center;min-height:230px;margin-top:20px;padding:14px;border:1px solid #e0e3de;background:#fff}
+#preview img{width:min(100%,250px);height:auto}#status{min-height:22px;color:#5e6d62;font-size:11px}
+.warning{padding:10px 12px;background:#f7eee8;border-right:3px solid #ae6048;color:#774b3a}
+</style></head>
+<body><main>
+<h1>ساخت QR مشترک دبیران</h1>
+<p>این ابزار کاملاً آفلاین است. لینک و کلید واردشده به هیچ سروری ارسال نمی‌شود.</p>
+<div class="warning">QR مشترک دبیران دسترسی گسترده به اطلاعات مدرسه می‌دهد. تصویر آن را فقط به افراد مورد اعتماد بدهید.</div>
+<label>آدرس سایت<input id="base" value="https://mb-bidram.github.io/SalehinSc/" dir="ltr" spellcheck="false"></label>
+<label>قطعه QR که bootstrap در ترمینال چاپ کرده است<textarea id="fragment" placeholder="#s=…&k=…"></textarea></label>
+<div class="actions"><button id="generate" class="primary">ساخت QR</button><button id="copy" disabled>کپی لینک</button><button id="download" disabled>دریافت تصویر SVG</button></div>
+<div id="preview"><span>QR پس از وارد کردن قطعه خصوصی نمایش داده می‌شود.</span></div>
+<div id="status" role="status"></div>
+</main><script src="../qr-code.js"></script><script>
+const $=id=>document.getElementById(id);let currentUrl='',currentSvg='';
+function parseFragment(value){let raw=String(value||'').trim();try{if(raw.includes('://'))raw=new URL(raw).hash;}catch{return null;}const text=raw.replace(/^#/,'').replace(/^\?/,'');const params=new URLSearchParams(text);const id=params.get('s')||params.get('id')||'';const key=params.get('k')||params.get('key')||'';return /^[a-f0-9]{64}$/i.test(id)&&/^[A-Za-z0-9_-]{43}$/.test(key)?{id:id.toLowerCase(),key}:null;}
+$('generate').addEventListener('click',()=>{try{const base=new URL($('base').value.trim());if(base.protocol!=='https:'||base.search||base.hash)throw new Error('آدرس سایت باید HTTPS و بدون query یا fragment باشد.');const qr=parseFragment($('fragment').value);if(!qr)throw new Error('قطعه QR معتبر نیست؛ همان خط #s=…&k=… را وارد کنید.');base.hash=`s=${qr.id}&k=${qr.key}`;currentUrl=base.href;currentSvg=SalehinQRCode.toSvg(currentUrl);const image=document.createElement('img');image.alt='QR مشترک دبیران';image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(currentSvg);$('preview').replaceChildren(image);$('copy').disabled=false;$('download').disabled=false;$('status').textContent='QR ساخته شد. آن را خصوصی نگه دارید.';}catch(error){$('status').textContent=error.message;$('copy').disabled=true;$('download').disabled=true;}});
+$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(currentUrl);$('status').textContent='لینک کپی شد.';}catch{$('status').textContent='کپی خودکار در دسترس نیست؛ لینک را از ابزار دیگری انتخاب کنید.';}});
+$('download').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([currentSvg],{type:'image/svg+xml'}));const a=document.createElement('a');a.href=url;a.download='salehin-staff-qr.svg';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);});
+</script></body></html>

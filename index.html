@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7f6f1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="salehin-api" content="">
+  <title>صالحین | سامانه مدرسه</title>
+  <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="modern.css">
+  <script defer src="config.js"></script><script defer src="backend.js"></script><script defer src="role-backend.js"></script><script defer src="qr-code.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#modernMain">رفتن به محتوای اصلی</a>
+  <div class="modern-app" id="modernApp">
+    <header class="modern-header">
+      <a class="modern-brand" href="./" aria-label="صالحین، صفحه اصلی">
+        <span class="modern-brand-mark" aria-hidden="true"></span>
+        <span class="modern-brand-copy"><strong>صالحین</strong><small>کارنامه و ارتباط با مدرسه</small></span>
+      </a>
+      <div class="modern-header-actions">
+        <span class="modern-live"><i></i><span id="modernConnection">آماده</span></span>
+        <button class="modern-icon-button" id="modernRefresh" type="button" aria-label="به‌روزرسانی اطلاعات" title="به‌روزرسانی"><span aria-hidden="true">↻</span></button>
+        <button class="modern-end-button" id="modernEndView" type="button" aria-label="پایان دسترسی در این دستگاه">پایان مشاهده</button>
+      </div>
+    </header>
+    <main id="modernMain" class="modern-main">
+      <section id="modernGate" class="modern-gate" aria-labelledby="gateTitle">
+        <div class="gate-rule"></div>
+        <p class="eyebrow">مدرسه صالحین</p>
+        <h1 id="gateTitle">کارنامه، همیشه<br>همراه شماست.</h1>
+        <p class="gate-copy">برای مشاهده نمره‌ها و پیام‌های مدرسه، کد اختصاصی خود را با دوربین تلفن همراه اسکن کنید.</p>
+        <div class="gate-instruction"><span class="gate-number">۱</span><span>برنامه دوربین را باز کنید.</span><span class="gate-number">۲</span><span>کد اختصاصی صالحین را اسکن کنید.</span></div>
+        <p id="modernGateStatus" class="modern-status" role="status" aria-live="polite">برای مشاهده اطلاعات، QR اختصاصی لازم است.</p>
+        <div class="modern-gate-teacher">
+          <span>دبیر هستید؟</span>
+          <button type="button" class="modern-action secondary" id="modernTeacherEntry">ورود دبیران</button>
+        </div>
+      </section>
+      <section id="modernDashboard" class="modern-dashboard" hidden>
+        <div class="modern-student-heading">
+          <div>
+            <p class="eyebrow" id="modernKicker">کارنامه آموزشی</p>
+            <h1 id="modernStudentName">دانش‌آموز</h1>
+            <p class="modern-student-meta" id="modernStudentMeta"></p>
+          </div>
+          <div class="modern-identity-stamp" id="modernIdentityStamp" aria-hidden="true"><span>ص</span><small>صالحین</small></div>
+        </div>
+        <section id="modernRosterSection" class="modern-roster-section" hidden aria-labelledby="modernRosterTitle">
+          <div class="modern-roster-heading">
+            <div><p class="eyebrow">پنل دبیران</p><h2 id="modernRosterTitle">فهرست دانش‌آموزان</h2><p>برای دیدن مشخصات، نمره‌ها یا صدور کد هر دانش‌آموز، ردیف او را انتخاب کنید.</p></div>
+            <span id="modernRosterCount" class="modern-count"></span>
+          </div>
+          <div class="modern-roster-actions">
+            <label class="modern-search"><span aria-hidden="true">⌕</span><input id="modernRosterSearch" type="search" placeholder="جست‌وجوی نام یا کلاس…" autocomplete="off"></label>
+            <select id="modernRosterClass" class="modern-class-filter" aria-label="فیلتر کلاس"><option value="">همه کلاس‌ها</option></select>
+            <button type="button" class="modern-action secondary" id="modernComposeBroadcast">ارسال پیام</button>
+            <button type="button" class="modern-action secondary" id="modernExportQr">چاپ برگه‌های QR</button>
+            <button type="button" class="modern-action secondary" id="modernTeacherQr">چاپ QR دبیران</button>
+            <button type="button" class="modern-action secondary" id="modernRotateTeacherQr">تعویض QR دبیران</button>
+            <button type="button" class="modern-action primary" id="modernAddStudent">＋ افزودن دانش‌آموز</button>
+            <label class="modern-show-disabled"><input id="modernShowDisabled" type="checkbox"> نمایش غیرفعال‌ها</label>
+          </div>
+          <section id="modernGithubSetup" class="modern-setup" hidden aria-labelledby="modernGithubSetupTitle">
+            <div><strong id="modernGithubSetupTitle">سرویس امن مدرسه راه‌اندازی نشده است</strong><p>برای ثبت تغییرات، مسئول سامانه باید Worker مدرسه را در Cloudflare مستقر کند و نشانی آن را در تنظیمات سایت قرار دهد. هیچ توکن GitHub نباید در مرورگر وارد شود.</p></div>
+            <p id="modernGithubStatus" class="modern-status" role="status"></p>
+          </section>
+          <div id="modernRoster" class="modern-roster" aria-live="polite"></div>
+        </section>
+        <div class="modern-toolbar" id="modernToolbar">
+          <nav class="modern-tabs" aria-label="بخش‌های سامانه">
+            <button type="button" class="is-active" data-modern-tab="scores" aria-current="page">کارنامه</button>
+            <button type="button" data-modern-tab="messages">پیام‌ها <span id="modernMessageCount"></span></button>
+          </nav>
+          <div class="modern-teacher-tools" id="modernTeacherTools" hidden>
+            <button type="button" class="modern-action secondary" id="modernComposeMessage">ارسال پیام</button>
+            <button type="button" class="modern-action primary" id="modernAddScore">ثبت نمره <span>＋</span></button>
+          </div>
+        </div>
+        <div id="modernStatus" class="modern-notice" role="status" aria-live="polite" hidden></div>
+        <section id="modernScoresSection" class="modern-content-section" aria-labelledby="modernScoresTitle">
+          <div class="modern-section-heading"><div><p class="eyebrow">گزارش آموزشی</p><h2 id="modernScoresTitle">نمره‌ها و ارزیابی‌ها</h2></div><span id="modernScoreCount" class="modern-count"></span></div>
+          <div id="modernScoreSummary" class="modern-score-summary"></div>
+          <div id="modernScores" class="modern-scores"></div>
+        </section>
+        <section id="modernMessagesSection" class="modern-content-section" aria-labelledby="modernMessagesTitle" hidden>
+          <div class="modern-section-heading"><div><p class="eyebrow">ارتباط با مدرسه</p><h2 id="modernMessagesTitle">پیام‌ها و اطلاعیه‌ها</h2></div><span id="modernMessageTotal" class="modern-count"></span></div>
+          <div id="modernMessages" class="modern-messages"></div>
+        </section>
+        <footer class="modern-footer"><span>مدرسه صالحین</span><span id="modernSyncTime">اطلاعات به‌روز</span></footer>
+      </section>
+    </main>
+  </div>
+  <dialog id="modernTeacherEntryDialog" class="modern-dialog" aria-labelledby="modernTeacherEntryTitle">
+    <form id="modernTeacherEntryForm">
+      <header><div><p class="eyebrow">دسترسی مشترک دبیران</p><h2 id="modernTeacherEntryTitle">ورود به پنل دبیران</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernTeacherEntryDialog" aria-label="بستن">×</button></header>
+      <div class="modern-dialog-body">
+        <p class="modern-dialog-copy">بهترین راه، اسکن QR مشترک دبیران است. اگر صفحه را دستی باز کرده‌اید، لینک کامل یا فقط بخش بعد از # را اینجا وارد کنید.</p>
+        <label>لینک مشترک دبیران<input id="modernTeacherLink" type="text" dir="ltr" autocomplete="off" required placeholder="https://…/#s=…&k=…"></label>
+        <p id="modernTeacherEntryStatus" class="modern-status" role="status"></p>
+      </div>
+      <footer><button type="button" class="modern-action secondary" data-modern-close="modernTeacherEntryDialog">انصراف</button><button type="submit" class="modern-action primary" id="modernTeacherEnterButton">ورود</button></footer>
+    </form>
+  </dialog>
+  <dialog id="modernAddStudentDialog" class="modern-dialog" aria-labelledby="modernAddStudentTitle">
+    <form id="modernAddStudentForm">
+      <header><div><p class="eyebrow">فهرست مدرسه</p><h2 id="modernAddStudentTitle">افزودن دانش‌آموز</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernAddStudentDialog" aria-label="بستن">×</button></header>
+      <div class="modern-dialog-body">
+        <label>نام و نام خانوادگی<input id="modernNewStudentName" maxlength="120" required></label>
+        <label>پایه / کلاس<input id="modernNewStudentGrade" maxlength="80" required placeholder="مثلاً نهم الف"></label>
+        <p class="modern-dialog-copy">پس از ذخیره، یک QR اختصاصی ساخته می‌شود. لازم نیست برای دانش‌آموز نام کاربری یا رمز جداگانه تعیین کنید.</p>
+        <p id="modernAddStudentStatus" class="modern-status" role="status"></p>
+      </div>
+      <footer><button type="button" class="modern-action secondary" data-modern-close="modernAddStudentDialog">انصراف</button><button type="submit" class="modern-action primary" id="modernCreateStudent">ایجاد و ساخت QR</button></footer>
+    </form>
+  </dialog>
+  <dialog id="modernStudentDialog" class="modern-dialog modern-student-dialog" aria-labelledby="modernStudentDialogTitle">
+    <form id="modernStudentForm">
+      <header><div><p class="eyebrow">پرونده دانش‌آموز</p><h2 id="modernStudentDialogTitle">مشخصات دانش‌آموز</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernStudentDialog" aria-label="بستن">×</button></header>
+      <div class="modern-dialog-body">
+        <input id="modernEditStudentId" type="hidden">
+        <label>نام و نام خانوادگی<input id="modernEditStudentName" maxlength="120" required></label>
+        <label>پایه / کلاس<input id="modernEditStudentGrade" maxlength="80" required></label>
+        <div class="modern-detail-heading"><strong>نمره‌های ثبت‌شده</strong><span id="modernDetailScoreCount" class="modern-count"></span></div>
+        <div id="modernDetailScores" class="modern-detail-scores"></div>
+        <div class="modern-detail-heading"><strong>پیام‌های این دانش‌آموز</strong><span id="modernDetailMessageCount" class="modern-count"></span></div>
+        <div id="modernDetailMessages" class="modern-detail-messages"></div>
+        <p id="modernStudentStatus" class="modern-status" role="status"></p>
+      </div>
+      <footer class="modern-student-footer">
+        <div><button type="button" class="modern-action secondary" id="modernDetailAddScore">ثبت نمره</button><button type="button" class="modern-action secondary" id="modernDetailMessage">ارسال پیام</button></div>
+        <button type="submit" class="modern-action primary" id="modernSaveStudent">ذخیره مشخصات</button>
+      </footer>
+    </form>
+  </dialog>
+  <dialog id="modernQrDialog" class="modern-dialog modern-qr-dialog" aria-labelledby="modernQrTitle">
+    <header><div><p class="eyebrow">دسترسی دانش‌آموز</p><h2 id="modernQrTitle">کد اختصاصی</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernQrDialog" aria-label="بستن">×</button></header>
+    <div class="modern-dialog-body">
+      <div id="modernQrImage" class="modern-qr-image" aria-label="کد QR دانش‌آموز"></div>
+      <label id="modernQrLinkField">لینک اختصاصی<input id="modernQrLink" dir="ltr" readonly></label>
+      <div class="modern-qr-actions"><button type="button" class="modern-action secondary" id="modernCopyQrLink">کپی لینک</button><button type="button" class="modern-action secondary" id="modernPrintQrPaper">چاپ برگه</button><button type="button" class="modern-action primary" id="modernDownloadQr">دریافت تصویر QR</button><button type="button" class="modern-action remove" id="modernRotateStudentQr" hidden>تعویض و ابطال QR قبلی</button></div>
+      <p class="modern-dialog-copy" id="modernQrDescription">این QR کلید خصوصی دسترسی دانش‌آموز است. آن را فقط به همان دانش‌آموز یا خانواده‌اش تحویل دهید.</p>
+      <p id="modernQrStatus" class="modern-status" role="status"></p>
+    </div>
+  </dialog>
+  <dialog id="modernScoreDialog" class="modern-dialog" aria-labelledby="modernScoreDialogTitle">
+    <form id="modernScoreForm">
+      <header><div><p class="eyebrow">ثبت ارزیابی</p><h2 id="modernScoreDialogTitle">نمره جدید</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernScoreDialog" aria-label="بستن">×</button></header>
+      <div class="modern-dialog-body">
+        <label>دانش‌آموز<select id="modernScoreStudent" required></select></label>
+        <label>درس یا عنوان ارزیابی<input id="modernScoreTitle" maxlength="160" required placeholder="مثلاً ریاضی · آزمون فصل دوم"></label>
+        <div class="modern-field-row"><label>نمره کسب‌شده<input id="modernScoreValue" type="number" min="0" step="any" required></label><label>از مجموع<input id="modernScoreTotal" type="number" min="0.01" step="any" value="20" required></label></div>
+        <label>بازخورد دبیر <span class="optional-label">اختیاری</span><textarea id="modernScoreFeedback" rows="3" maxlength="2000" placeholder="توضیح کوتاه برای دانش‌آموز"></textarea></label>
+        <p id="modernScoreStatus" class="modern-status" role="status"></p>
+      </div>
+      <footer><button type="button" class="modern-action secondary" data-modern-close="modernScoreDialog">انصراف</button><button class="modern-action primary" id="modernSaveScore" type="submit">ثبت نمره</button></footer>
+    </form>
+  </dialog>
+  <dialog id="modernMessageDialog" class="modern-dialog" aria-labelledby="modernMessageDialogTitle">
+    <form id="modernMessageForm">
+      <header><div><p class="eyebrow">ارتباط تازه</p><h2 id="modernMessageDialogTitle">ارسال پیام</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernMessageDialog" aria-label="بستن">×</button></header>
+      <div class="modern-dialog-body">
+        <label>گیرنده<select id="modernMessageStudent" required></select></label>
+        <label>موضوع<input id="modernMessageTitle" maxlength="200" required placeholder="موضوع پیام"></label>
+        <label>متن پیام<textarea id="modernMessageBody" rows="5" maxlength="20000" required placeholder="پیام خود را بنویسید..."></textarea></label>
+        <label class="modern-check"><input id="modernMessageAnnouncement" type="checkbox">این پیام به‌عنوان اطلاعیه نمایش داده شود.</label>
+        <p id="modernMessageStatus" class="modern-status" role="status"></p>
+      </div>
+      <footer><button type="button" class="modern-action secondary" data-modern-close="modernMessageDialog">انصراف</button><button class="modern-action primary" id="modernSendMessage" type="submit">ارسال پیام</button></footer>
+    </form>
+  </dialog>
+  <header class="school-header"><div class="header-inner"><div class="school-brand" aria-label="نام مدرسه"><span class="book-mark" data-icon="book"></span><span><strong id="schoolName">مدرسه صالحین</strong><small>سامانه یکپارچه ارتباط و آموزش</small></span></div><div class="header-left"><span id="headerDate" class="header-date"></span><span class="header-divider"></span><span class="portal-label" id="portalLabel">درگاه مدرسه</span></div></div></header>
+  <div class="navigation-band"><div class="navigation-inner"><nav id="mainNav" aria-label="منوی اصلی"><span class="nav-welcome"><span data-icon="shield"></span>فضای ارتباطی امن مدرسه</span></nav><button id="logoutBtn" class="nav-logout hidden" type="button"><span data-icon="logout"></span>خروج</button></div></div>
+  <main id="mainContent">
+    <section id="loginView" class="login-page">
+      <div class="login-welcome"><span class="welcome-kicker">مدرسه، نزدیک‌تر از همیشه</span><h1>یک پنجره به<br><em>دنیای مدرسه</em></h1><p>پیام‌های مدرسه، مسیر پیشرفت و اتفاق‌های تازه؛<br>همه در یک فضای منظم و شخصی.</p><div class="welcome-illustration" aria-hidden="true"><div class="illustration-circle"></div><div class="illustration-book" data-icon="book"></div><span class="illustration-badge badge-a" data-icon="message"></span><span class="illustration-badge badge-b" data-icon="graduation"></span><span class="illustration-dot dot-a"></span><span class="illustration-dot dot-b"></span></div><div class="welcome-foot"><span data-icon="shield"></span>اطلاعات شخصی شما، در فضای اختصاصی شما</div></div>
+      <div class="login-card"><div class="login-card-heading"><span class="section-kicker">به صالحین خوش آمدید</span><h2 id="loginHeading">ورود به سامانه</h2><p>برای ادامه، مشخصات حساب خود را وارد کنید.</p></div>
+        <form id="loginForm"><label for="loginKey">کلید ورود</label><div class="input-with-icon"><span data-icon="user"></span><input id="loginKey" name="username" dir="ltr" autocomplete="username" required spellcheck="false" placeholder="کلید ورود خود را وارد کنید"></div><label for="loginPassword">رمز عبور</label><div class="input-with-icon"><span data-icon="lock"></span><input id="loginPassword" name="password" type="password" dir="ltr" autocomplete="current-password" required placeholder="رمز عبور خود را وارد کنید"><button id="togglePassword" type="button" class="icon-button" aria-label="نمایش رمز عبور"><span data-icon="eye"></span></button></div><p class="login-persistence"><span data-icon="check-circle"></span>ورود شما در این دستگاه حفظ می‌شود.</p><button id="loginBtn" type="submit" class="button primary login-submit">ورود به سامانه<span data-icon="arrow-left"></span></button><p id="loginStatus" class="form-status" role="status" aria-live="polite"></p></form><div class="login-help"><span data-icon="help"></span><p>مشخصات ورود را از مسئول مدرسه دریافت کنید.<br><small>در دستگاه مشترک، پس از پایان کار از حساب خارج شوید.</small></p></div>
+      </div>
+    </section>
+    <section id="appView" class="workspace hidden">
+      <div class="breadcrumbs"><span data-icon="home"></span><span>خانه</span><span class="crumb-separator">/</span><span id="viewCrumb">پیام‌ها و اطلاعیه‌ها</span><span class="session-indicator"><i></i>حساب فعال</span></div>
+      <div class="page-heading"><div><p class="section-kicker" id="pageKicker">ارتباط با مدرسه</p><h1 id="pageTitle">پیام‌ها و اطلاعیه‌ها</h1><p id="pageDescription">آخرین خبرها و پیام‌های مدرسه را اینجا دنبال کنید.</p></div><div class="page-actions"><button id="composeBtn" type="button" class="button primary hidden"><span data-icon="plus"></span>پیام جدید</button></div></div><div id="globalStatus" class="notice hidden" role="status" aria-live="polite"></div>
+      <div class="dashboard-layout">
+        <aside class="sidebar"><section class="profile-card"><div class="profile-cover"><span class="profile-cover-circle"></span><span class="profile-cover-line"></span></div><div class="profile-person"><div id="profileAvatar" class="profile-avatar" role="button" tabindex="0" aria-label="ویرایش تصویر و مشخصات پروفایل" title="ویرایش پروفایل"></div><h2 id="profileName"></h2><span id="profileRole" class="role-badge"></span><p id="profileSubject"></p></div><dl class="profile-details"><div><dt><span data-icon="user"></span>حساب کاربری</dt><dd id="profileAccountName"></dd></div><div><dt><span data-icon="graduation"></span>پایه / گروه</dt><dd id="profileGrade"></dd></div><div><dt><span data-icon="calendar"></span>سال تحصیلی</dt><dd id="profileYear"></dd></div></dl><button id="profileSettingsBtn" type="button" class="button profile-edit hidden"><span data-icon="settings"></span>تنظیمات پروفایل</button></section><section class="sidebar-card quick-access"><h3>دسترسی سریع</h3><div id="quickLinks"></div></section><section class="sidebar-note"><span data-icon="shield"></span><p><strong>فضای شخصی شما</strong><span>فایل‌ها روی همین دستگاه رمزگشایی می‌شوند.</span></p></section></aside>
+        <div class="main-column">
+          <section id="messagesPanel" class="view-panel"><div id="pinnedMessageNotice" class="pinned-notice hidden" aria-live="polite"></div><div class="feed-toolbar"><div id="messageFilters" class="filter-tabs" role="group" aria-label="فیلتر پیام‌ها"><button type="button" data-filter="all" class="selected">همه پیام‌ها <span id="allMessageCount">۰</span></button><button type="button" data-filter="announcement">اطلاعیه‌ها</button><button type="button" data-filter="message">پیام‌ها</button></div><label class="search-box" for="messageSearch"><span data-icon="search"></span><input id="messageSearch" type="search" placeholder="جست‌وجو در پیام‌ها…" autocomplete="off"></label></div><div id="messageFeed" class="message-feed" aria-live="polite"></div><div id="feedPagination" class="feed-pagination"></div></section>
+          <section id="scoresPanel" class="view-panel hidden"><div class="section-title"><div><h2>کارنامه و نمره‌ها</h2><p>مسیر پیشرفت آموزشی</p></div><button id="newScoreBtn" class="button primary hidden" type="button"><span data-icon="plus"></span>ثبت نمره</button></div><div id="scoreSummary" class="summary-grid"></div><div id="scoresContent"></div></section>
+          <section id="accountsPanel" class="view-panel hidden"><div class="section-title"><div><h2>مدیریت حساب‌ها</h2><p>دانش‌آموزان، دبیران و دسترسی کلاس‌ها</p></div><button id="createAccountBtn" type="button" class="button primary"><span data-icon="user-plus"></span>حساب جدید</button></div><div class="account-toolbar"><div id="accountFilters" class="filter-tabs"><button type="button" data-role-filter="all" class="selected">همه</button><button type="button" data-role-filter="student">دانش‌آموزان</button><button type="button" data-role-filter="teacher">دبیران</button></div><label class="search-box" for="accountSearch"><span data-icon="search"></span><input id="accountSearch" type="search" placeholder="نام یا پایه…"></label></div><div id="accountsContent"></div></section>
+          <section id="rosterPanel" class="view-panel hidden"><div class="section-title"><div><h2>کلاس‌های من</h2><p>دانش‌آموزانی که مدیریت مدرسه به شما سپرده است.</p></div><span class="section-icon" data-icon="users"></span></div><div id="rosterContent"></div></section>
+          <section id="filesPanel" class="view-panel hidden"><div class="section-title"><div><h2>فایل‌های من</h2><p>همه پیوست‌ها، در یک نگاه</p></div><span class="section-icon" data-icon="folder"></span></div><div id="filesContent" class="file-library"></div></section>
+          <section id="settingsPanel" class="view-panel hidden"><div class="section-title"><div><h2>تنظیمات حساب</h2><p>اطلاعات و تصویر پروفایل خود را به‌روز کنید.</p></div><span class="section-icon" data-icon="settings"></span></div><form id="profileForm" class="settings-form"><div class="form-grid"><label>نام نمایشی<input id="settingsName" required maxlength="120" autocomplete="name"></label><label>عنوان / سمت<input id="settingsTitle" maxlength="120" placeholder="مثلاً دبیر ریاضی"></label><label>درس / گروه آموزشی<input id="settingsSubject" maxlength="120"></label><div class="span-two avatar-field"><span class="field-caption">تصویر پروفایل</span><div class="avatar-picker-row"><div id="settingsAvatarPreview" class="settings-avatar-preview" aria-hidden="true">ص</div><div class="avatar-picker-copy"><strong>تصویر خود را انتخاب کنید</strong><small>قبل از ذخیره می‌توانید آن را برش دهید؛ حداکثر ۷۶۸ پیکسل.</small></div><label class="button subtle avatar-select-button"><span data-icon="image"></span>انتخاب تصویر<input id="settingsAvatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="sr-only"></label></div></div></div><div class="form-footer"><p>تصویر شما در کنار پیام‌های ارسالی نمایش داده می‌شود.</p><button type="submit" class="button primary">ذخیره پروفایل</button></div><p id="profileFormStatus" class="form-status" role="status"></p></form>
+            <div id="adminSettings" class="hidden"><div class="settings-divider"></div><div class="section-title"><div><h2>اتصال و تنظیمات مدرسه</h2><p>تنظیمات انتشار و حساب‌های مدرسه</p></div><span class="section-icon" data-icon="shield"></span></div><div class="settings-form"><p class="field-help">دسترسی انتشار از سرویس امن مدرسه انجام می‌شود؛ توکن GitHub هرگز در مرورگر ذخیره یا وارد نمی‌شود.</p><p id="githubStatus" class="form-status" role="status"></p></div><form id="siteForm" class="settings-form"><div class="form-grid"><label>نام مدرسه<input id="settingsSchoolName" required maxlength="160"></label><label>سال تحصیلی<input id="settingsSchoolYear" maxlength="40"></label></div><p class="field-help">کلید سرور فقط در Cloudflare Worker نگهداری می‌شود. گردش کار انتشار مخزن باید فعال باشد.</p><div class="form-footer"><span></span><button type="submit" class="button primary">ذخیره تنظیمات مدرسه</button></div><p id="siteStatus" class="form-status" role="status"></p></form><div class="backup-box"><div><h3><span data-icon="key"></span>پشتیبان کلیدهای خصوصی</h3><p>یک نسخه رمزگذاری‌شده برای نگهداری مستقل دریافت کنید.</p></div><div class="backup-actions"><button id="exportKeysBtn" type="button" class="button subtle">دریافت پشتیبان</button><label class="button subtle file-label">بازیابی پشتیبان<input id="importKeysFile" type="file" accept="application/json,.json" class="sr-only"></label></div></div></div>
+          </section>
+        </div>
+      </div><footer class="workspace-footer"><span class="footer-brand"><span data-icon="book"></span>صالحین</span><span>همراه مسیر یادگیری</span><span id="syncTime"></span></footer>
+    </section>
+  </main>
+  <dialog id="composerDialog" class="modal composer-modal" aria-labelledby="composerHeading"><form id="composerForm"><header class="modal-header"><div><span class="section-kicker">ارتباط تازه</span><h2 id="composerHeading">ارسال پیام جدید</h2></div><button type="button" class="icon-button" data-close-dialog="composerDialog" aria-label="بستن"><span data-icon="close"></span></button></header><div class="modal-body"><div class="form-grid"><label>عنوان پیام<input id="messageTitle" required maxlength="200" placeholder="موضوع پیام را بنویسید…"></label><label>نوع پیام<select id="messageCategory"><option value="message">پیام آموزشی</option><option value="announcement">اطلاعیه</option></select></label></div><div class="recipient-field"><label>گیرندگان</label><div class="recipient-options"><button id="selectAllRecipients" type="button" class="text-button">انتخاب همه</button><span id="recipientCount"></span></div><div id="recipientChoices" class="recipient-choices"></div></div><label for="messageBody">متن پیام</label><textarea id="messageBody" class="message-editor" rows="7" maxlength="25000" placeholder="متن پیام را اینجا بنویسید…"></textarea><div class="editor-toolbar"><label class="attachment-picker"><span data-icon="paperclip"></span>افزودن فایل<input id="messageFiles" type="file" multiple class="sr-only"></label><span>هر نوع فایل · هر فایل تا ۸ مگابایت</span><label class="pin-choice"><input id="messagePinned" type="checkbox">سنجاق کردن (جایگزین پیام سنجاق‌شده فعلی)</label></div><div id="composerAttachments" class="composer-attachments"></div><p class="field-help">برای قرار دادن پیوست میان متن، «درج در متن» را بزنید.</p><div id="composerProgress" class="upload-progress hidden"><div></div><span></span></div><p id="composerStatus" class="form-status" role="status"></p></div><footer class="modal-footer"><button type="button" class="button subtle" data-close-dialog="composerDialog">انصراف</button><button id="sendMessageBtn" type="submit" class="button primary"><span data-icon="send"></span>ارسال پیام</button></footer></form></dialog>
+  <dialog id="accountDialog" class="modal" aria-labelledby="accountHeading"><form id="accountForm"><header class="modal-header"><div><span class="section-kicker">مدیریت دسترسی</span><h2 id="accountHeading">ایجاد حساب جدید</h2></div><button type="button" class="icon-button" data-close-dialog="accountDialog" aria-label="بستن"><span data-icon="close"></span></button></header><div class="modal-body"><input id="accountId" type="hidden"><div class="form-grid"><label>نام و نام خانوادگی<input id="accountName" required maxlength="120"></label><label>نوع حساب<select id="accountRole"><option value="student">دانش‌آموز</option><option value="teacher">دبیر</option></select></label><label>پایه / کلاس<input id="accountGrade" maxlength="80" placeholder="مثلاً نهم الف"></label><label>درس / سمت<input id="accountSubject" maxlength="120" placeholder="مثلاً دبیر علوم"></label><label>کلید ورود<div class="input-action"><input id="accountLoginKey" dir="ltr" minlength="8" maxlength="128" required autocomplete="off"><button id="generateLoginKey" type="button" class="icon-button" aria-label="ساخت کلید تصادفی"><span data-icon="refresh"></span></button></div></label><label>رمز عبور<input id="accountPassword" type="password" minlength="12" maxlength="1024" autocomplete="new-password"></label></div><div id="teacherAssignments" class="hidden"><label class="checkbox-line"><input id="teacherAllStudents" type="checkbox">دسترسی به همه دانش‌آموزان فعلی و آینده</label><div id="assignmentChoices" class="recipient-choices"></div></div><p id="accountStatus" class="form-status" role="status"></p><div id="createdCredentials" class="credentials-box hidden"></div></div><footer class="modal-footer"><button type="button" class="button subtle" data-close-dialog="accountDialog">بستن</button><button id="saveAccountBtn" type="submit" class="button primary">ایجاد حساب</button></footer></form></dialog>
+  <dialog id="scoreDialog" class="modal small-modal" aria-labelledby="scoreHeading"><form id="scoreForm"><header class="modal-header"><h2 id="scoreHeading">ثبت نمره</h2><button type="button" class="icon-button" data-close-dialog="scoreDialog" aria-label="بستن"><span data-icon="close"></span></button></header><div class="modal-body"><label>دانش‌آموز<select id="scoreStudent" required></select></label><label>عنوان درس / فعالیت<input id="scoreTitle" required maxlength="160"></label><div class="form-grid"><label>نمره<input id="scoreValue" type="number" min="0" step="any" required></label><label>از مجموع<input id="scoreTotal" type="number" min="0.01" step="any" value="20" required></label></div><label>بازخورد<textarea id="scoreFeedback" maxlength="2000" rows="3"></textarea></label><p id="scoreStatus" class="form-status" role="status"></p></div><footer class="modal-footer"><button id="saveScoreBtn" class="button primary" type="submit">ثبت و ارسال نمره</button></footer></form></dialog>
+  <dialog id="confirmDialog" class="modal small-modal" aria-labelledby="confirmHeading"><header class="modal-header"><h2 id="confirmHeading">تأیید عملیات</h2></header><div class="modal-body"><p id="confirmText"></p><div id="confirmPasswordField" class="hidden"><label for="confirmPassword">رمز (حداقل ۱۲ نویسه)</label><input id="confirmPassword" type="password" minlength="12" autocomplete="new-password"></div></div><footer class="modal-footer"><button id="confirmCancel" type="button" class="button subtle">انصراف</button><button id="confirmAccept" type="button" class="button primary">تأیید</button></footer></dialog>
+  <dialog id="avatarCropDialog" class="modal crop-modal" aria-labelledby="avatarCropHeading"><header class="modal-header"><div><span class="section-kicker">تصویر پروفایل</span><h2 id="avatarCropHeading">تصویر را تنظیم کنید</h2></div><button id="cancelAvatarCropIcon" type="button" class="icon-button" aria-label="لغو برش"><span data-icon="close"></span></button></header><div class="modal-body"><p class="crop-help">برای جا‌به‌جایی تصویر آن را بکشید و با لغزنده بزرگ‌نمایی را تنظیم کنید.</p><div id="cropStage" class="crop-stage" aria-label="ناحیه برش تصویر"><img id="cropImage" alt="پیش‌نمایش برش تصویر" draggable="false"></div><label class="crop-zoom-label" for="cropZoom">بزرگ‌نمایی <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1"></label><p class="field-help">تصویر نهایی بدون کشیدگی و با حفظ نسبت تصویر ذخیره می‌شود.</p><p id="cropStatus" class="form-status" role="status"></p></div><footer class="modal-footer"><button id="cancelAvatarCrop" type="button" class="button subtle">انصراف</button><button id="applyAvatarCrop" type="button" class="button primary"><span data-icon="check-circle"></span>استفاده از تصویر</button></footer></dialog>
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+</body>
+</html>

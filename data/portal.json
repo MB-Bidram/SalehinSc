@@ -1,0 +1,77 @@
+{
+  "format": "SalehinSc portal",
+  "version": 4,
+  "scope": "SalehinSc:v4:mb-bidram/salehinsc:main:data/portal.json",
+  "updatedAt": "2026-11-02T18:51:14.283Z",
+  "students": [
+    {
+      "id": "da0737c0d2a41b80ca459a1312b1e532545ec03b3faa72c452a82fa36eb7bcec",
+      "auth": {
+        "revision": "e85a61c13a968a1487bc23001971ced7",
+        "kdf": {
+          "name": "PBKDF2-SHA256",
+          "salt": "yDVeVMvT3xz5UJOxoX5vVg==",
+          "iterations": 600000
+        },
+        "wrappedKey": {
+          "algorithm": "A256GCM",
+          "iv": "pK2juhh62ElAelWW",
+          "ciphertext": "OhvjXoXRybIQ8z7+Ueb7phEl8p38QcdDmX7tP8Wj53NO2JmhZYgu9XO+Kuihnm/8QEpW7NNarFPfHu6P"
+        }
+      },
+      "disabled": false,
+      "payloadRef": {
+        "path": "data/students/da0737c0d2a41b80ca459a1312b1e532545ec03b3faa72c452a82fa36eb7bcec.json",
+        "revision": "adc8b26dd2ccbc6abf48ca6b6b451bc6afa5d3c274f61f82125a2242a5a2b496"
+      },
+      "updatedAt": "2026-11-02T18:51:14.283Z",
+      "encryptionKey": {
+        "key_ops": [],
+        "ext": true,
+        "kty": "EC",
+        "x": "oDA1DxdUSzOMKZ53J8s8HH8w2nJffoiniY2JLk3O4rM",
+        "y": "6RZMlWZJrhASWJW6XWsuV5gri179hRm8U_lWN-jybok",
+        "crv": "P-256"
+      },
+      "signingKey": {
+        "key_ops": [
+          "verify"
+        ],
+        "ext": true,
+        "kty": "EC",
+        "x": "apKnM3GQDaWtJRkaKMaAzLsK7blKxrMR6cU6g5T3m1c",
+        "y": "Oi2PHXmXX8xi4TB85DEyScUHRjLtf-yfbg6cxXn_39E",
+        "crv": "P-256"
+      },
+      "role": "admin",
+      "assignedIds": [],
+      "qrAccess": {
+        "revision": "641f20872c16027a69d18788a3266480",
+        "wrappedKey": {
+          "algorithm": "A256GCM",
+          "iv": "U9KVWOZQuVmfzb+N",
+          "ciphertext": "4oIMz0Qt5NGoOTRibGQbk6u8JfNRmKwisWeRUi3oZX3kVUHUhQGeg+SG28Tq4Ju3S6r0lnUAPcbfl+SY"
+        }
+      }
+    }
+  ],
+  "announcements": [],
+  "messages": [],
+  "scores": [],
+  "identities": {
+    "da0737c0d2a41b80ca459a1312b1e532545ec03b3faa72c452a82fa36eb7bcec": {
+      "key_ops": [
+        "verify"
+      ],
+      "ext": true,
+      "kty": "EC",
+      "x": "apKnM3GQDaWtJRkaKMaAzLsK7blKxrMR6cU6g5T3m1c",
+      "y": "Oi2PHXmXX8xi4TB85DEyScUHRjLtf-yfbg6cxXn_39E",
+      "crv": "P-256"
+    }
+  },
+  "site": {
+    "schoolName": "مدرسه صالحین",
+    "schoolYear": "۱۴۰۵ — ۱۴۰۶"
+  }
+}

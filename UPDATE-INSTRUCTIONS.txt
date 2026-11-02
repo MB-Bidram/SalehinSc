@@ -1,0 +1,49 @@
+SalehinSc — update and deployment notes
+======================================
+
+This release changes the write architecture. It is not a simple static-file
+overlay: deploy the Cloudflare Worker and configure its URL before enabling
+writes. Read INSTALL.txt and SECURITY.md first.
+
+Updating an existing school
+---------------------------
+1. Back up the complete repository and its data/ directory privately.
+2. Copy the application files, worker/, wrangler.toml, and .github/workflows/
+   files into the existing repository. Preserve the repository's .git/ folder.
+3. Do NOT overwrite data/portal.json or any of data/ from this ZIP. The ZIP has
+   a sample legacy administrator seed, not the school's live data or QR keys.
+4. Keep the real repository name, default branch and catalogue scope aligned.
+   This archive is configured for MB-Bidram/SalehinSc on main.
+5. Follow INSTALL.txt sections B–D to deploy the Worker, install its GitHub
+   credential as a Cloudflare secret, configure Pages and migrate the existing
+   staff QR. Verify the new staff QR before destroying the old paper.
+6. Open GitHub Actions and confirm that the Pages workflow deployed the site
+   shell. Data-only commits should not trigger a Pages rebuild.
+
+Fresh installation
+------------------
+Use INSTALL.txt section E only for a new, empty repository. Never run bootstrap
+replacement against a populated school. The first private bootstrap QR
+fragment is not recoverable from the public repository.
+
+Local validation
+----------------
+    npm ci
+    npm run check
+    npm test
+    npm run serve
+
+Without a deployed Worker and its URL in index.html's salehin-api meta tag,
+the dashboard is intentionally read-only. No GitHub token belongs in browser
+storage, JavaScript, HTML, wrangler.toml, a QR code, or a committed file.
+
+QR printing
+------------
+The deployed teacher dashboard provides:
+- «چاپ QR دبیران» to print the shared staff-access QR;
+- «تعویض QR دبیران» to revoke the old staff QR and print a replacement;
+- «چاپ برگه‌های QR» to print cards for active students; and
+- a per-student QR action to print or rotate one student's QR.
+
+Store staff papers securely. A shared staff QR is an administrator-level
+bearer credential: anyone who has it can perform administrator actions.

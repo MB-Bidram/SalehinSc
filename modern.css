@@ -1,0 +1,257 @@
+/* SalehinSc visual system — quiet, editorial, information-first. */
+:root{
+  --paper:#f7f6f1;
+  --surface:#fffefa;
+  --ink:#24332d;
+  --muted:#748078;
+  --line:#e5e6de;
+  --line-strong:#d6dbd2;
+  --green:#315c49;
+  --green-deep:#244636;
+  --green-pale:#edf2ed;
+  --clay:#ae6048;
+  --clay-pale:#f6eee9;
+  --shadow:0 12px 34px rgba(31,48,39,.055);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{background:var(--paper);scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Vazirmatn,"Tahoma",sans-serif;font-size:14px;line-height:1.85;-webkit-font-smoothing:antialiased}
+body> .school-header,body> .navigation-band,body> #mainContent{display:none!important}
+.modern-app{min-height:100vh;min-height:100dvh}
+.modern-header{height:78px;padding:0 max(28px,calc((100vw - 1080px)/2));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:rgba(255,254,250,.88)}
+.modern-brand{display:flex;align-items:center;gap:13px;color:inherit;text-decoration:none;min-width:0}
+.modern-brand-mark{width:43px;height:43px;display:grid;place-items:center;overflow:hidden;border-radius:12px;background:#f0f1e9;border:1px solid var(--line)}
+.modern-brand-mark img{width:100%;height:100%;object-fit:contain}
+.modern-brand-mark img[hidden]{display:none}
+.modern-brand-mark::after{content:"ص";font-size:23px;font-weight:700;color:var(--green)}
+.modern-brand-copy{display:flex;flex-direction:column;line-height:1.45}
+.modern-brand-copy strong{font-size:17px;font-weight:800;letter-spacing:-.4px}
+.modern-brand-copy small{font-size:10px;color:var(--muted);font-weight:400}
+.modern-header-actions{display:flex;align-items:center;gap:18px}
+.modern-live{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}
+.modern-live i{width:7px;height:7px;background:#77957f;border-radius:50%;display:block}
+.modern-icon-button{height:36px;width:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--green);font-size:23px;cursor:pointer;transition:background .15s,border-color .15s}
+.modern-icon-button:hover{background:var(--green-pale);border-color:#c8d5c9}
+.modern-end-button{border:0;background:none;color:var(--muted);font:inherit;font-size:11px;cursor:pointer;padding:7px 0}
+.modern-end-button:hover{color:var(--clay)}
+.modern-main{width:min(100% - 48px,920px);margin:0 auto;padding:58px 0 36px}
+.modern-gate{width:min(100%,550px);margin:44px auto 0;padding:26px 0 70px}
+.gate-rule{height:3px;width:52px;background:var(--clay);margin-bottom:34px}
+.eyebrow{margin:0 0 8px;color:var(--clay);font-size:10px;font-weight:700;letter-spacing:.035em}
+.modern-gate h1{font-size:clamp(34px,6vw,54px);line-height:1.42;letter-spacing:-1.7px;margin:0 0 18px;font-weight:800;color:var(--ink)}
+.gate-copy{max-width:430px;color:#66736b;font-size:14px;line-height:2.2;margin:0}
+.gate-instruction{display:grid;grid-template-columns:34px 1fr;align-items:center;gap:13px 11px;margin:36px 0 30px;padding-top:24px;border-top:1px solid var(--line);max-width:390px;color:#46564d;font-size:12px}
+.gate-number{width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:50%;font-size:11px;color:var(--green);font-weight:700}
+.modern-status{font-size:11px;color:var(--muted);margin:12px 0 0;line-height:1.9}
+.modern-status.is-error{color:#a44838}
+.modern-dashboard{padding-bottom:36px}
+.modern-student-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:20px 0 36px;border-bottom:1px solid var(--line)}
+.modern-student-heading h1{font-size:clamp(29px,5vw,43px);letter-spacing:-1.1px;line-height:1.35;margin:0;font-weight:800}
+.modern-student-meta{margin:8px 0 0;color:var(--muted);font-size:12px}
+.modern-identity-stamp{width:72px;height:72px;border:1px solid var(--line-strong);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--green);flex-shrink:0;transform:rotate(-7deg)}
+.modern-identity-stamp span{font-size:28px;font-weight:800;line-height:1}
+.modern-identity-stamp small{font-size:8px;margin-top:4px;letter-spacing:.1em}
+.modern-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:19px 0;border-bottom:1px solid var(--line)}
+.modern-tabs{display:flex;align-items:center;gap:24px}
+.modern-tabs button{position:relative;border:0;background:transparent;padding:7px 0;color:#7a857e;font:inherit;font-size:12px;cursor:pointer}
+.modern-tabs button.is-active{color:var(--green-deep);font-weight:800}
+.modern-tabs button.is-active::after{content:"";position:absolute;bottom:-20px;right:0;left:0;height:2px;background:var(--green)}
+.modern-tabs button span{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 4px;margin-right:4px;background:#ecefe9;border-radius:10px;font-size:9px;color:var(--green)}
+.modern-teacher-tools{display:flex;gap:8px;align-items:center}
+.modern-action{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:39px;padding:8px 15px;border-radius:7px;border:1px solid transparent;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.modern-action:active{transform:translateY(1px)}
+.modern-action.primary{background:var(--green);color:white}
+.modern-action.primary:hover{background:var(--green-deep)}
+.modern-action.secondary{background:transparent;border-color:var(--line-strong);color:var(--green)}
+.modern-action.secondary:hover{background:var(--green-pale);border-color:#c3d0c4}
+.modern-action:disabled{opacity:.55;cursor:wait}
+.modern-notice{margin:18px 0 0;padding:11px 14px;border-right:3px solid var(--green);background:var(--green-pale);color:#46614e;font-size:11px}
+.modern-notice.is-error{border-color:var(--clay);background:var(--clay-pale);color:#8e4c37}
+.modern-content-section{padding:35px 0 18px}
+.modern-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px}
+.modern-section-heading .eyebrow{margin-bottom:3px}
+.modern-section-heading h2{font-size:21px;line-height:1.5;margin:0;font-weight:800;letter-spacing:-.5px}
+.modern-count{font-size:10px;color:var(--muted);white-space:nowrap;padding-bottom:5px}
+.modern-score-summary{display:flex;gap:0;margin-bottom:21px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.modern-metric{flex:1;padding:15px 20px 15px 0;display:flex;flex-direction:column;gap:2px;min-width:0}
+.modern-metric+.modern-metric{border-right:1px solid var(--line);padding-right:20px}
+.modern-metric small{color:var(--muted);font-size:10px}
+.modern-metric strong{font-size:21px;font-weight:800;color:var(--green-deep);letter-spacing:-.4px}
+.modern-metric strong em{font-style:normal;font-size:11px;color:var(--muted);font-weight:500;margin-right:3px}
+.modern-scores{border-top:1px solid var(--line-strong)}
+.modern-score-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(88px,.45fr) minmax(115px,.65fr) minmax(100px,.5fr);gap:15px;align-items:center;padding:15px 10px;border-bottom:1px solid var(--line);transition:background .12s}
+.modern-score-row:hover{background:rgba(255,254,250,.75)}
+.modern-score-subject{min-width:0}
+.modern-score-subject strong{display:block;font-size:12px;font-weight:700;color:#2b3932;overflow-wrap:anywhere}
+.modern-score-subject small{display:block;color:var(--muted);font-size:9px;margin-top:2px}
+.modern-score-grade{font-size:15px;font-weight:800;color:var(--green-deep);font-variant-numeric:tabular-nums;white-space:nowrap}
+.modern-score-grade small{font-size:10px;color:var(--muted);font-weight:500}
+.modern-score-date{font-size:10px;color:var(--muted);white-space:nowrap}
+.modern-score-feedback{font-size:10px;color:#68766d;line-height:1.8;overflow-wrap:anywhere}
+.modern-list-head{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(88px,.45fr) minmax(115px,.65fr) minmax(100px,.5fr);gap:15px;padding:0 10px 9px;color:#89938b;font-size:9px}
+.modern-messages{border-top:1px solid var(--line-strong)}
+.modern-message{padding:19px 10px 20px;border-bottom:1px solid var(--line)}
+.modern-message-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.modern-message h3{font-size:14px;margin:0;font-weight:800;line-height:1.7}
+.modern-message time{font-size:9px;color:var(--muted);white-space:nowrap;padding-top:5px}
+.modern-message p{white-space:pre-wrap;margin:8px 0 0;color:#59675f;font-size:11px;line-height:2.2;overflow-wrap:anywhere}
+.modern-message-type{display:inline-block;margin-top:10px;padding:2px 8px;border-radius:3px;background:#f0f1eb;color:#67736a;font-size:9px}
+.modern-empty{padding:36px 12px;text-align:center;border-bottom:1px solid var(--line);color:var(--muted)}
+.modern-empty strong{display:block;font-size:13px;color:#4f5d54;margin-bottom:5px}
+.modern-empty p{font-size:10px;margin:0;line-height:2}
+.modern-footer{display:flex;justify-content:space-between;gap:15px;border-top:1px solid var(--line);margin-top:24px;padding-top:15px;font-size:9px;color:#929b93}
+.modern-dialog{width:min(490px,calc(100% - 28px));max-height:min(90dvh,760px);padding:0;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:0 25px 80px rgba(30,44,36,.18);overflow:auto}
+.modern-dialog::backdrop{background:rgba(31,43,35,.34)}
+.modern-dialog form{margin:0}
+.modern-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:21px 23px 16px;border-bottom:1px solid var(--line)}
+.modern-dialog header h2{font-size:19px;margin:0;line-height:1.5}
+.modern-dialog header .eyebrow{margin:0 0 3px}
+.modern-dialog-close{border:0;background:transparent;color:#78837a;font-size:25px;line-height:1;cursor:pointer;width:34px;height:34px;border-radius:50%}
+.modern-dialog-close:hover{background:#f0f1eb;color:var(--ink)}
+.modern-dialog-body{padding:20px 23px 22px;display:grid;gap:13px}
+.modern-dialog label{display:grid;gap:6px;font-size:11px;color:#46544b;font-weight:700}
+.modern-dialog input:not([type=checkbox]),.modern-dialog select,.modern-dialog textarea{width:100%;min-height:42px;padding:9px 11px;border:1px solid var(--line-strong);border-radius:6px;background:white;color:var(--ink);font-family:inherit;font-size:12px;outline:none;direction:rtl}
+.modern-dialog textarea{resize:vertical;min-height:100px;line-height:1.9}
+.modern-dialog input:focus,.modern-dialog select:focus,.modern-dialog textarea:focus{border-color:#8da895;box-shadow:0 0 0 3px rgba(49,92,73,.09)}
+.modern-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.optional-label{font-size:9px;color:#9aa39b;font-weight:400}
+.modern-check{display:flex!important;grid-template-columns:none!important;align-items:center;gap:8px!important;font-weight:400!important}
+.modern-check input{accent-color:var(--green)}
+.modern-dialog footer{display:flex;justify-content:flex-start;gap:8px;padding:14px 23px 19px;border-top:1px solid var(--line)}
+.modern-toast{position:fixed;bottom:20px;left:20px;z-index:100;padding:10px 15px;border-radius:6px;background:var(--ink);color:white;font-size:11px;box-shadow:var(--shadow)}
+[hidden]{display:none!important}
+@media(max-width:680px){
+  .modern-header{height:68px;padding:0 18px}
+  .modern-brand-mark{width:38px;height:38px}
+  .modern-main{width:calc(100% - 36px);padding:35px 0 25px}
+  .modern-gate{margin:32px auto 0;padding-bottom:45px}
+  .modern-gate h1{font-size:38px}
+  .modern-student-heading{padding:10px 0 25px}
+  .modern-identity-stamp{width:58px;height:58px}
+  .modern-identity-stamp span{font-size:23px}
+  .modern-toolbar{align-items:flex-start;flex-direction:column;gap:13px;padding:14px 0}
+  .modern-tabs{gap:22px}
+  .modern-tabs button.is-active::after{bottom:-15px}
+  .modern-teacher-tools{width:100%}
+  .modern-teacher-tools .modern-action{flex:1}
+  .modern-content-section{padding-top:27px}
+  .modern-section-heading h2{font-size:18px}
+  .modern-score-summary{margin-bottom:12px}
+  .modern-metric{padding:12px 10px 12px 0}
+  .modern-metric+.modern-metric{padding-right:12px}
+  .modern-metric strong{font-size:18px}
+  .modern-list-head{display:none}
+  .modern-score-row{grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;padding:14px 5px}
+  .modern-score-grade{grid-column:2;grid-row:1;font-size:14px}
+  .modern-score-subject{grid-column:1;grid-row:1}
+  .modern-score-date{grid-column:1;grid-row:2;font-size:9px}
+  .modern-score-feedback{grid-column:1/-1;grid-row:3;margin-top:3px}
+  .modern-footer{font-size:8px}
+}
+@media(max-width:420px){
+  .modern-header-actions{gap:10px}
+  .modern-end-button{font-size:10px}
+  .modern-live{font-size:9px}
+  .modern-student-heading h1{font-size:28px}
+  .modern-identity-stamp{width:50px;height:50px}
+  .modern-score-subject strong{font-size:11px}
+  .modern-metric small{font-size:9px}
+  .modern-metric strong{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* Visible keyboard focus and comfortable touch targets. */
+.modern-app :focus-visible{outline:3px solid #b77a56;outline-offset:3px;border-radius:4px}
+.modern-tabs button,.modern-end-button{min-height:42px}
+.modern-action,.modern-icon-button,.modern-dialog-close{min-height:44px}
+.modern-icon-button{min-width:44px;width:44px;height:44px}
+.modern-dialog-close{min-width:44px;width:44px;height:44px}
+@media(max-width:680px){
+  .modern-header{padding-inline:16px}
+  .modern-main{width:calc(100% - 32px)}
+  .modern-action{min-height:44px}
+  .modern-dialog-body{padding:18px 17px 20px}
+  .modern-dialog header{padding:17px 17px 14px}
+  .modern-dialog footer{padding-inline:17px}
+}
+
+/* Teacher workspace: flat, practical rows inspired by the supplied sketch. */
+.modern-gate-teacher{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:24px;padding-top:18px;border-top:1px solid var(--line);color:#59645c;font-size:12px}
+.modern-gate-teacher .modern-action{min-height:40px}
+.modern-roster-section{padding:25px 0 10px}
+.modern-roster-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.modern-roster-heading h2{margin:0;color:#252d28;font-size:23px;font-weight:750;line-height:1.5}
+.modern-roster-heading p:not(.eyebrow){margin:5px 0 0;color:#707970;font-size:11px;line-height:1.9}
+.modern-roster-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line-strong)}
+.modern-search{display:flex;align-items:center;gap:8px;min-width:190px;flex:1;min-height:40px;padding:0 11px;border:1px solid var(--line-strong);border-radius:5px;background:#fff;color:#737d75}
+.modern-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font:inherit;font-size:11px}
+.modern-show-disabled{display:inline-flex;align-items:center;gap:6px;padding:0 5px;color:#6d776f;font-size:10px;white-space:nowrap}
+.modern-show-disabled input{accent-color:var(--green)}
+.modern-roster{margin-top:14px;border:1px solid #d9dcd6;background:#fff}
+.modern-student-row{display:flex;align-items:center;gap:12px;min-height:66px;padding:9px 13px;background:#fff;border-bottom:1px solid #e1e3de;transition:background .12s}
+.modern-student-row:last-child{border-bottom:0}
+.modern-student-row:hover{background:#f7f8f5}
+.modern-student-row.is-disabled{background:#f2f2ef;opacity:.72}
+.modern-student-avatar{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:#e5e7e3;color:#59635b;font-size:13px;font-weight:700}
+.modern-student-info{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.modern-student-info strong{font-size:13px;line-height:1.7;color:#252d28;font-weight:700;overflow-wrap:anywhere}
+.modern-student-info small{font-size:10px;color:#727b73}
+.modern-student-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.modern-student-actions .modern-action{min-height:34px;padding:5px 10px;border-radius:4px;border-color:#cfd3cd;background:#f4f5f2;color:#4f5a51;font-size:10px;white-space:nowrap}
+.modern-student-actions .modern-action:hover{background:#e9ece7;border-color:#b9c0b8}
+.modern-student-actions .modern-action.remove{background:#fff;border-color:#ddc8c0;color:#92543f}
+.modern-student-actions .modern-action.remove:hover{background:#f8eeea}
+.modern-setup{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,350px);align-items:center;gap:14px;margin:14px 0;padding:14px 15px;border:1px solid #dedfd9;background:#f3f4f1}
+.modern-setup strong{font-size:12px;color:#333d35}
+.modern-setup p{margin:4px 0 0;color:#68736a;font-size:10px;line-height:1.9}
+.modern-setup form{display:flex;gap:7px;min-width:0}
+.modern-setup input{width:100%;min-width:0;min-height:42px;padding:8px 10px;border:1px solid #cdd2cb;border-radius:4px;background:white;color:var(--ink);font:inherit;font-size:11px;direction:ltr}
+.modern-setup .modern-status{grid-column:1/-1;margin:0}
+.modern-student-dialog{width:min(700px,calc(100% - 28px))}
+.modern-student-footer{align-items:center;justify-content:space-between!important;flex-wrap:wrap}
+.modern-student-footer>div{display:flex;gap:7px;flex-wrap:wrap}
+.modern-detail-heading{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--line)}
+.modern-detail-heading strong{font-size:12px}
+.modern-detail-scores{border:1px solid var(--line);background:#fff;max-height:250px;overflow:auto}
+.modern-detail-score{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 11px;border-bottom:1px solid var(--line);align-items:center}
+.modern-detail-score:last-child{border-bottom:0}
+.modern-detail-score strong{font-size:11px;font-weight:700}
+.modern-detail-score span{font-size:12px;font-weight:800;color:var(--green-deep);white-space:nowrap}
+.modern-detail-score small{grid-column:1/-1;color:var(--muted);font-size:9px}
+.modern-qr-dialog{width:min(420px,calc(100% - 28px))}
+.modern-qr-image{display:grid;place-items:center;margin:0 auto;padding:10px;border:1px solid var(--line);background:#fff;width:min(100%,280px)}
+.modern-qr-image img{display:block;width:100%;height:auto}
+.modern-qr-actions{display:flex;gap:8px;flex-wrap:wrap}
+.modern-qr-actions .modern-action{flex:1}
+.modern-dialog-copy{margin:0;color:#68736a;font-size:10px;line-height:1.9}
+.modern-dialog label input[dir=ltr]{direction:ltr;text-align:left}
+@media(max-width:680px){
+  .modern-roster-section{padding-top:20px}
+  .modern-roster-heading{align-items:flex-start}
+  .modern-roster-heading h2{font-size:20px}
+  .modern-roster-actions{align-items:stretch}
+  .modern-search{flex-basis:100%}
+  .modern-roster-actions>.modern-action{flex:1 1 auto}
+  .modern-show-disabled{flex-basis:100%;padding:5px 2px}
+  .modern-student-row{align-items:flex-start;gap:9px;padding:10px}
+  .modern-student-avatar{width:36px;height:36px;flex-basis:36px}
+  .modern-student-info{padding-top:2px}
+  .modern-student-actions{justify-content:flex-start;max-width:100%}
+  .modern-student-actions .modern-action{min-height:36px;padding:5px 8px}
+  .modern-setup{grid-template-columns:1fr}
+  .modern-setup form{width:100%}
+  .modern-setup .modern-status{grid-column:auto}
+  .modern-student-footer{align-items:stretch!important;flex-direction:column-reverse}
+  .modern-student-footer>div,.modern-student-footer>.modern-action{width:100%}
+  .modern-student-footer>div .modern-action{flex:1}
+}
+
+.modern-class-filter{min-height:42px;min-width:145px;padding:0 12px;border:1px solid var(--line-strong);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
+.modern-detail-messages{display:grid;gap:7px;max-height:250px;overflow:auto}
+.modern-detail-message{padding:9px 11px;border:1px solid var(--line);background:#fff}
+.modern-detail-message strong{display:block;font-size:11px}
+.modern-detail-message p{margin:5px 0 0;color:#59645c;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
+.modern-detail-message small{display:block;margin-top:5px;color:var(--muted);font-size:9px}
+.modern-qr-actions #modernRotateStudentQr{flex-basis:100%}
+@media(max-width:680px){.modern-class-filter{flex:1;min-width:0}.modern-roster-actions>.modern-class-filter{flex-basis:calc(50% - 4px)}}
