@@ -1,0 +1,13 @@
+{
+  "format": "SalehinSc teacher directory",
+  "version": 1,
+  "primaryTeacherId": "da0737c0d2a41b80ca459a1312b1e532545ec03b3faa72c452a82fa36eb7bcec",
+  "teachers": [
+    {
+      "id": "da0737c0d2a41b80ca459a1312b1e532545ec03b3faa72c452a82fa36eb7bcec",
+      "kind": "primary",
+      "active": true
+    }
+  ],
+  "updatedAt": "2026-11-03T16:32:04.917Z"
+}
