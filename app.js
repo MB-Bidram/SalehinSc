@@ -33,9 +33,10 @@ const ICONS = Object.freeze({
   key:'M15 7a5 5 0 1 1-10 0 5 5 0 0 1 10 0Zm-1 3 8 8-3 3-3-3 2-2-3-3',
   edit:'m15 3 6 6-12 12H3v-6L15 3Zm-2 2 6 6',
   trash:'M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7',
-  clock:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 6v6l4 3'
+  clock:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 6v6l4 3',
+  'qr-code':'M3 3h7v7H3V3Zm11 0h7v7h-7V3ZM3 14h7v7H3v-7Zm2-9v3h3V5H5Zm11 0v3h3V5h-3ZM5 16v3h3v-3H5Zm9-2h2v2h-2v-2Zm4 0h3v3h-3v-3Zm-4 4h2v3h-2v-3Zm4 2h3v3h-3v-3Z'
 });
-const ROLE_LABELS = Object.freeze({ student:'دانش‌آموز', teacher:'دبیر', admin:'مدیر سامانه' });
+const ROLE_LABELS = Object.freeze({ student:'دانش‌آموز', teacher:'دبیر', admin:'دبیر اصلی' });
 const VIEWS = Object.freeze({
   messages:{ title:'پیام‌ها و اطلاعیه‌ها', kicker:'ارتباط با مدرسه', description:'آخرین خبرها و پیام‌های مدرسه را اینجا دنبال کنید.', icon:'message' },
   scores:{ title:'کارنامه و نمره‌ها', kicker:'مسیر یادگیری', description:'نمره‌ها، فعالیت‌ها و بازخوردهای آموزشی در یک نگاه.', icon:'chart' },
@@ -94,9 +95,12 @@ class SchoolUI {
   notice(text,type=''){const node=this.$('globalStatus');node.textContent=text;node.className=`notice ${type}`;if(!text)node.classList.add('hidden');}
   toast(text){const node=this.$('toast');node.textContent=text;node.classList.remove('hidden');clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>node.classList.add('hidden'),5000);}
   isStaff(){return this.view&&['admin','teacher'].includes(this.view.role);}
-  accessibleViews(){return this.view?.role==='admin'?['messages','accounts','scores','files','settings']:this.view?.role==='teacher'?['messages','roster','scores','files','settings']:['messages','scores','files'];}
+  accessibleViews(){return this.view?.role==='admin'?['messages','roster','scores','files','settings']:this.view?.role==='teacher'?['messages','roster','scores','files','settings']:['messages','scores','files'];}
   async init(){
     decorate();this.$('headerDate').textContent=formatDate(new Date());
+    const configuredSchoolName=globalThis.SALEHIN_CONFIG?.schoolName||'مدرسه صالحین';
+    if(this.$('modernBrandName'))this.$('modernBrandName').textContent=configuredSchoolName;
+    document.title=`${configuredSchoolName} | سامانه مدرسه`;
     this.bindModernInterface();
     this.selectLoginRole('student');
     document.querySelectorAll('[data-close-dialog]').forEach(node=>node.addEventListener('click',()=>{if(!this.busy)this.$(node.dataset.closeDialog).close();}));
@@ -149,11 +153,14 @@ class SchoolUI {
     }else{
     const qr=this.readModernQr();
     if(qr){
+      // Remove bearer credentials from the address bar immediately, even if
+      // the subsequent network or authorization check fails.
+      if(location.hash)history.replaceState(null,'',location.pathname+location.search);
       this.$('modernGateStatus').textContent='در حال دریافت کارنامه…';
       try{
         const view=await this.portal.loginWithQr(qr.id,qr.key,qr.revision||'');
+        await this.authorizeStaffEntry(view);
         try{sessionStorage.setItem('salehinsc-qr-session',JSON.stringify(qr));}catch{}
-        if(location.hash)history.replaceState(null,'',location.pathname+location.search);
         this.applyView(view);await this.refreshDirectory();
       }catch(error){
         try{sessionStorage.removeItem('salehinsc-qr-session');}catch{}
@@ -163,12 +170,12 @@ class SchoolUI {
     }else{
       let stored=null;try{stored=JSON.parse(sessionStorage.getItem('salehinsc-qr-session')||'null');}catch{}
       if(stored?.id&&stored?.key){
-        try{const view=await this.portal.loginWithQr(stored.id,stored.key,stored.revision||'');this.applyView(view);await this.refreshDirectory();}
+        try{const view=await this.portal.loginWithQr(stored.id,stored.key,stored.revision||'');await this.authorizeStaffEntry(view);this.applyView(view);await this.refreshDirectory();}
         catch(error){try{sessionStorage.removeItem('salehinsc-qr-session');}catch{}await this.portal.logout().catch(()=>{});this.modernGateMessage(errorText(error),true);}
       }else{
         await this.portal.logout().catch(()=>{});
         this.clearSession();
-        this.modernGateMessage('برای مشاهده اطلاعات، QR اختصاصی دانش‌آموز یا دبیر را اسکن کنید.');
+        this.modernGateMessage('دانش‌آموزان با QR شخصی وارد می‌شوند؛ دبیر اصلی فایل خصوصی teacher.html را باز می‌کند.');
       }
     }
     }
@@ -178,16 +185,35 @@ class SchoolUI {
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&this.view&&!this.busy)this.refresh({quiet:true});});
     if('serviceWorker'in navigator&&location.protocol==='https:'&&!this.portal.preview)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
   }
+  async authorizeStaffEntry(view){
+    // The local teacher launcher is the normal staff entry, but repeat the Worker
+    // authorization after redirect/reload so a forged sessionStorage value cannot
+    // bypass the primary-teacher allowlist. Student QR access stays separate.
+    if(view?.role==='admin'&&!this.portal.admin)await this.portal.connectAdmin();
+    else if(view?.role==='teacher')await this.portal.connectTeacher();
+    return view;
+  }
   readModernQr(){
     return this.parseQrValue(location.hash)||(()=>{try{return JSON.parse(sessionStorage.getItem('salehinsc-qr-session')||'null');}catch{return null;}})();
   }
+  applicationBaseUrl(){
+    const configured=globalThis.SALEHIN_CONFIG?.baseUrl;
+    return new URL(configured || './', location.href);
+  }
+  studentQrUrl(entry){
+    const url=this.applicationBaseUrl();
+    url.hash=SalehinBackend.makeQrFragment(entry.id,entry.key,entry.revision||entry.qrRevision||'').replace(/^#/,'');
+    return url.href;
+  }
   bindModernInterface(){
     this.$('modernRefresh').addEventListener('click',()=>this.refresh({quiet:false}));
+    this.$('modernSettings').addEventListener('click',()=>this.openModernSettings());
+    this.$('modernTestGithub').addEventListener('click',()=>this.testModernGithubConnection());
+    this.$('modernCopySetToken').addEventListener('click',()=>this.copyModernText('npx wrangler secret put GITHUB_TOKEN'));
+    this.$('modernCopyRemoveToken').addEventListener('click',()=>this.copyModernText('npx wrangler secret delete GITHUB_TOKEN'));
     this.$('modernEndView').addEventListener('click',async()=>{try{sessionStorage.removeItem('salehinsc-qr-session');}catch{}await this.logout();});
     document.querySelectorAll('[data-modern-tab]').forEach(node=>node.addEventListener('click',()=>this.setModernTab(node.dataset.modernTab)));
     document.querySelectorAll('[data-modern-close]').forEach(node=>node.addEventListener('click',()=>this.$(node.dataset.modernClose).close()));
-    this.$('modernTeacherEntry').addEventListener('click',()=>{this.status('modernTeacherEntryStatus','');this.$('modernTeacherLink').value='';this.$('modernTeacherEntryDialog').showModal();this.$('modernTeacherLink').focus();});
-    this.$('modernTeacherEntryForm').addEventListener('submit',event=>this.enterTeacherLink(event));
     this.$('modernAddStudent').addEventListener('click',()=>this.openModernAddStudent());
     this.$('modernAddStudentForm').addEventListener('submit',event=>this.createModernStudent(event));
     this.$('modernRosterSearch').addEventListener('input',()=>this.renderModernRoster());
@@ -202,13 +228,12 @@ class SchoolUI {
     this.$('modernAddScore').addEventListener('click',()=>this.openModernScore());
     this.$('modernComposeMessage').addEventListener('click',()=>this.openModernMessage());
     this.$('modernExportQr').addEventListener('click',()=>this.exportModernQrCards());
-    this.$('modernTeacherQr').addEventListener('click',()=>this.printTeacherQr());
-    this.$('modernRotateTeacherQr').addEventListener('click',()=>this.rotateTeacherQr());
+    this.$('modernTeacherFile').addEventListener('click',()=>this.downloadTeacherLocalFile());
     this.$('modernPrintQrPaper').addEventListener('click',()=>this.printCurrentQr());
     this.$('modernRotateStudentQr').addEventListener('click',()=>this.rotateCurrentStudentQr());
     this.$('modernScoreForm').addEventListener('submit',event=>this.saveModernScore(event));
     this.$('modernMessageForm').addEventListener('submit',event=>this.saveModernMessage(event));
-    for(const id of ['modernScoreDialog','modernMessageDialog','modernStudentDialog','modernTeacherEntryDialog','modernAddStudentDialog','modernQrDialog'])this.$(id).addEventListener('cancel',event=>{if(this.busy)event.preventDefault();});
+    for(const id of ['modernScoreDialog','modernMessageDialog','modernStudentDialog','modernAddStudentDialog','modernQrDialog','modernSettingsDialog'])this.$(id).addEventListener('cancel',event=>{if(this.busy)event.preventDefault();});
   }
   parseQrValue(raw){
     if(!raw)return null;
@@ -221,19 +246,44 @@ class SchoolUI {
     const revision=params.get('r')||'';
     return /^[a-f0-9]{64}$/.test(id)&&/^[A-Za-z0-9_-]{40,48}$/.test(key)&&(!revision||/^[a-f0-9]{32}$/.test(revision))?{id,key,revision}:null;
   }
-  async enterTeacherLink(event){
-    event.preventDefault();if(this.busy)return;
-    const qr=this.parseQrValue(this.$('modernTeacherLink').value);
-    if(!qr){this.status('modernTeacherEntryStatus','لینک دبیران معتبر نیست. لینک کامل یا بخش بعد از # را وارد کنید.','error');return;}
-    this.busy=true;this.$('modernTeacherEnterButton').disabled=true;this.status('modernTeacherEntryStatus','در حال ورود…');
+  openModernSettings(){
+    if(this.view?.role!=='admin')return;
+    const config=globalThis.SALEHIN_CONFIG||{};
+    this.$('modernGithubOwner').value=config.owner||'—';
+    this.$('modernGithubRepo').value=config.repo||'—';
+    this.$('modernGithubBranch').value=config.branch||'—';
+    this.$('modernGithubApi').value=config.apiUrl||'تنظیم نشده';
+    const state=this.$('modernTokenState');
+    state.textContent=this.portal.admin?'توکن در Worker پیکربندی شده':'وضعیت هنوز تأیید نشده';
+    state.classList.toggle('is-ready',Boolean(this.portal.admin));
+    state.classList.remove('is-error');
+    this.status('modernGithubSettingsStatus',this.portal.admin?'آخرین اتصال موفق بوده است. برای بررسی دوباره، «آزمایش اتصال» را بزنید.':'برای بررسی اتصال، سرویس Worker باید در دسترس باشد.');
+    this.$('modernSettingsDialog').showModal();
+  }
+  async copyModernText(value){
     try{
-      const view=await this.portal.loginWithQr(qr.id,qr.key,qr.revision||'');
-      if(view.role!=='admin')throw new Error('این لینک، لینک مشترک دبیران نیست.');
-      try{sessionStorage.setItem('salehinsc-qr-session',JSON.stringify(qr));}catch{}
-      if(location.hash)history.replaceState(null,'',location.pathname+location.search);
-      this.$('modernTeacherEntryDialog').close();this.applyView(view);await this.refreshDirectory();
-    }catch(error){this.status('modernTeacherEntryStatus',errorText(error),'error');}
-    finally{this.busy=false;this.$('modernTeacherEnterButton').disabled=false;}
+      if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(value);
+      else{const input=document.createElement('textarea');input.value=value;input.setAttribute('readonly','');input.style.position='fixed';input.style.opacity='0';document.body.append(input);input.select();const copied=document.execCommand('copy');input.remove();if(!copied)throw new Error('copy');}
+      this.status('modernGithubSettingsStatus','دستور در کلیپ‌بورد کپی شد. آن را در PowerShell، داخل پوشه پروژه اجرا کنید.','success');
+    }catch{this.status('modernGithubSettingsStatus','کپی خودکار در دسترس نیست؛ دستور را از کادر بالا انتخاب کنید.','error');}
+  }
+  async testModernGithubConnection(){
+    if(this.view?.role!=='admin'||this.busy)return;
+    const button=this.$('modernTestGithub'),state=this.$('modernTokenState');
+    this.busy=true;button.disabled=true;button.textContent='در حال بررسی…';
+    this.status('modernGithubSettingsStatus','در حال بررسی اعتبار Worker، مخزن، شاخه و مسیر انتشار…');
+    try{
+      const result=await this.portal.testConnection();
+      state.textContent='توکن پذیرفته شد';state.classList.add('is-ready');state.classList.remove('is-error');
+      const checks=result.checks||{};
+      const detail=[`مخزن ${result.repository}` ,`شاخه ${result.branch}`,'فهرست مدرسه قابل خواندن است','دسترسی API پیام‌ها و گردش‌کار بررسی شد'];
+      this.status('modernGithubSettingsStatus',`اتصال موفق بود. ${detail.join(' · ')}. دسترسی نوشتن واقعی هنگام ثبت تغییر یا اجرای گردش‌کار نهایی تأیید می‌شود.`,'success');
+      this.$('modernConnection').textContent='متصل به GitHub';
+      this.$('modernGithubSetup').hidden=true;
+    }catch(error){
+      state.textContent='اتصال ناموفق';state.classList.remove('is-ready');state.classList.add('is-error');
+      this.status('modernGithubSettingsStatus',errorText(error),'error');
+    }finally{this.busy=false;button.disabled=false;button.textContent='آزمایش اتصال';}
   }
   ensureModernWriteAccess(){
     if(this.view?.offline){this.modernNotice('برای ثبت تغییرات، اتصال اینترنت لازم است.',true);return false;}
@@ -253,8 +303,8 @@ class SchoolUI {
     const classFilter=this.$('modernRosterClass');
     const selectedClass=classFilter.value;
     const classes=[...new Set(all.map(item=>String(item.grade||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fa'));
-    classFilter.replaceChildren(new Option('همه کلاس‌ها',''));
-    classes.forEach(grade=>classFilter.add(new Option(grade,grade)));
+    const allClasses=element('option','','همه کلاس‌ها');allClasses.value='';classFilter.replaceChildren(allClasses);
+    classes.forEach(grade=>{const option=element('option','',grade);option.value=grade;classFilter.append(option);});
     classFilter.value=classes.includes(selectedClass)?selectedClass:'';
     const students=all.filter(account=>(showDisabled||!account.disabled)&&(!classFilter.value||String(account.grade||'').trim()===classFilter.value)&&`${account.name||''} ${account.grade||''}`.toLocaleLowerCase('fa').includes(query));
     this.$('modernRosterCount').textContent=`${number(students.length)} دانش‌آموز`;
@@ -285,7 +335,7 @@ class SchoolUI {
       const password=SalehinBackend.generateLoginKey()+SalehinBackend.generateLoginKey();
       const result=await this.portal.createAccount({role:'student',loginKey,password,profile:{name,grade}});
       this.$('modernAddStudentDialog').close();await this.refreshDirectory();
-      this.showModernQrLink(name,`${location.origin}${location.pathname}${SalehinBackend.makeQrFragment(result.id,result.qrKey,result.qrRevision)}`);
+      this.showModernQrLink(name,this.studentQrUrl({id:result.id,key:result.qrKey,revision:result.qrRevision}));
       this.toast('دانش‌آموز اضافه شد. QR را خصوصی تحویل دهید.');
     }catch(error){this.status('modernAddStudentStatus',errorText(error),'error');}
     finally{this.busy=false;this.$('modernCreateStudent').disabled=false;}
@@ -303,7 +353,7 @@ class SchoolUI {
     try{
       this.busy=true;const entries=await this.portal.exportQrCredentials();const entry=entries.find(item=>item.id===student.id);
       if(!entry)throw new Error('کد QR فعال این دانش‌آموز پیدا نشد.');
-      const url=`${location.origin}${location.pathname}${SalehinBackend.makeQrFragment(entry.id,entry.key,entry.revision)}`;
+      const url=this.studentQrUrl(entry);
       this.showModernQrLink(student.name,url,{kind:'student',grade:student.grade,id:student.id});
     }catch(error){this.toast(errorText(error));}
     finally{this.busy=false;}
@@ -313,16 +363,14 @@ class SchoolUI {
     this.currentQrSvg=SalehinQRCode.toSvg(url);
     this.$('modernQrTitle').textContent=`QR · ${name}`;
     this.$('modernQrLink').value=url;
-    const staff=this.currentQr.kind==='staff';
-    this.$('modernQrLinkField').hidden=staff;
-    this.$('modernCopyQrLink').hidden=staff;
-    this.$('modernRotateStudentQr').hidden=staff||!this.currentQr.id;
-    this.$('modernQrDescription').textContent=staff?'این کد، دسترسی مشترک دبیران است. فقط در محل امن مدرسه نگهداری شود. برای باطل کردن نسخه قبلی، QR تازه صادر کنید.':'این QR کلید خصوصی دسترسی دانش‌آموز است. آن را فقط به همان دانش‌آموز یا خانواده‌اش تحویل دهید.';
+    this.$('modernQrLinkField').hidden=false;
+    this.$('modernCopyQrLink').hidden=false;
+    this.$('modernRotateStudentQr').hidden=!this.currentQr.id;
+    this.$('modernQrDescription').textContent='این QR کلید خصوصی دسترسی دانش‌آموز است. آن را فقط به همان دانش‌آموز یا خانواده‌اش تحویل دهید.';
     const image=element('img');image.alt=`کد QR برای ${name}`;image.width=300;image.height=300;image.src=`data:image/svg+xml;charset=utf-8,${encodeURIComponent(this.currentQrSvg)}`;
     this.$('modernQrImage').replaceChildren(image);this.status('modernQrStatus','');this.$('modernQrDialog').showModal();
   }
   async copyModernQrLink(){
-    if(this.currentQr?.kind==='staff')return;
     const value=this.$('modernQrLink').value;
     try{if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(value);else{const input=this.$('modernQrLink');input.select();document.execCommand('copy');}this.status('modernQrStatus','لینک کپی شد.','success');}
     catch{this.status('modernQrStatus','کپی خودکار انجام نشد؛ لینک را انتخاب و کپی کنید.','error');}
@@ -330,49 +378,42 @@ class SchoolUI {
   printWindow(cards,title,popup=null){
     popup=popup||window.open('about:blank','_blank');
     if(!popup){this.toast('مرورگر پنجره چاپ را مسدود کرد؛ اجازه بازشدن پنجره را بدهید و دوباره تلاش کنید.');return false;}
-    const cardHtml=cards.map(card=>`<article class="paper-card ${card.kind==='staff'?'staff':''}"><div class="paper-copy"><p class="school">مدرسه صالحین</p><h1>${htmlSafe(card.title)}</h1>${card.name?`<h2>${htmlSafe(card.name)}</h2>`:''}${card.grade?`<p class="grade">${htmlSafe(card.grade)}</p>`:''}<p>${htmlSafe(card.instruction)}</p></div><div class="qr">${SalehinQRCode.toSvg(card.url,8,4)}</div></article>`).join('');
-    const html=`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlSafe(title)}</title><style>@page{size:A4;margin:12mm}*{box-sizing:border-box}body{margin:0;color:#171717;background:#fff;font:14px/1.8 Tahoma,Arial,sans-serif}.paper-grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.paper-card{min-height:116mm;border:1px solid #999;border-radius:3mm;padding:8mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;break-inside:avoid}.paper-card.staff{width:100%;min-height:245mm;grid-column:1/-1;border:2px solid #333;padding:22mm}.paper-copy{width:100%}.school{font-size:12px;color:#555;margin:0 0 4mm}.paper-card h1{font-size:23px;margin:0 0 3mm}.paper-card h2{font-size:18px;margin:0}.grade{font-weight:700;margin:1mm 0 3mm}.paper-card p{font-size:13px;margin:2mm 0}.qr{width:58mm;height:58mm;display:grid;place-items:center;margin:4mm auto}.qr svg{width:100%;height:100%;display:block}.paper-card.staff .qr{width:88mm;height:88mm;margin-top:16mm}.paper-card.staff h1{font-size:31px}.paper-card.staff p{font-size:16px;max-width:130mm}.footer{font-size:10px;color:#555;margin-top:5mm}@media print{.paper-card{break-inside:avoid}.paper-card.staff{page-break-after:always}}</style></head><body><main class="paper-grid">${cardHtml}</main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),350));<\/script></body></html>`;
+    const schoolName=globalThis.SALEHIN_CONFIG?.schoolName||'مدرسه صالحین';
+    const logoMeta=document.querySelector('meta[name="salehin-logo-full"]')?.content||'';
+    let logoUrl='';try{if(logoMeta)logoUrl=new URL(logoMeta,location.href).href;}catch{}
+    const branding=logoUrl?`<img class="school-logo" src="${htmlSafe(logoUrl)}" alt="${htmlSafe(schoolName)}">`:`<p class="school">${htmlSafe(schoolName)}</p>`;
+    const cardHtml=cards.map(card=>`<article class="paper-card"><div class="paper-copy">${branding}<h1>${htmlSafe(card.title)}</h1>${card.name?`<h2>${htmlSafe(card.name)}</h2>`:''}${card.grade?`<p class="grade">${htmlSafe(card.grade)}</p>`:''}<p>${htmlSafe(card.instruction)}</p></div><div class="qr">${SalehinQRCode.toSvg(card.url,8,4)}</div></article>`).join('');
+    const html=`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${htmlSafe(title)}</title><style>@page{size:A4;margin:12mm}*{box-sizing:border-box}body{margin:0;color:#171717;background:#fff;font:14px/1.8 Tahoma,Arial,sans-serif}.paper-grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm}.paper-card{min-height:116mm;border:1px solid #999;border-radius:3mm;padding:8mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;break-inside:avoid}.paper-copy{width:100%}.school{font-size:12px;color:#555;margin:0 0 4mm}.school-logo{display:block;max-width:72mm;max-height:19mm;object-fit:contain;margin:0 auto 4mm}.paper-card h1{font-size:23px;margin:0 0 3mm}.paper-card h2{font-size:18px;margin:0}.grade{font-weight:700;margin:1mm 0 3mm}.paper-card p{font-size:13px;margin:2mm 0}.qr{width:58mm;height:58mm;display:grid;place-items:center;margin:4mm auto}.qr svg{width:100%;height:100%;display:block}.footer{font-size:10px;color:#555;margin-top:5mm}@media print{.paper-card{break-inside:avoid}}</style></head><body><main class="paper-grid">${cardHtml}</main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),350));<\/script></body></html>`;
     popup.document.open();popup.document.write(html);popup.document.close();
     return true;
   }
   printCurrentQr(){
-    const qr=this.currentQr;if(!qr)return;
-    const staff=qr.kind==='staff';
-    this.printWindow([{kind:qr.kind,title:staff?'ورود معلمان':'ورود دانش‌آموز',name:staff?'':qr.name,grade:qr.grade?`کلاس ${qr.grade}`:'',url:qr.url,instruction:staff?'این کد را فقط دبیران مدرسه اسکن کنند. پس از ورود، امکان مدیریت پرونده‌ها و ثبت نمره فراهم است.':'این کد را با دوربین تلفن همراه اسکن کنید تا کارنامه و پیام‌های شخصی شما باز شود. کد را محرمانه نگه دارید.'}],staff?'برگه ورود معلمان':`برگه ورود ${qr.name}`);
+    const qr=this.currentQr;if(!qr||qr.kind!=='student')return;
+    this.printWindow([{kind:'student',title:'ورود دانش‌آموز',name:qr.name,grade:qr.grade?`کلاس ${qr.grade}`:'',url:qr.url,instruction:'این کد را با دوربین تلفن همراه اسکن کنید تا کارنامه و پیام‌های شخصی شما باز شود. کد را محرمانه نگه دارید.'}],`برگه ورود ${qr.name}`);
   }
-  async printTeacherQr(){
+  async downloadTeacherLocalFile(){
     if(this.view?.role!=='admin'||!this.ensureModernWriteAccess()||this.busy)return;
-    const popup=window.open('about:blank','_blank');if(!popup){this.toast('مرورگر پنجره چاپ را مسدود کرد.');return;}
-    this.busy=true;this.$('modernTeacherQr').disabled=true;
+    if(!await this.confirm('با ساخت فایل تازه، فایل قبلی دبیر بلافاصله از اعتبار می‌افتد. فایل تازه را در محل خصوصی ذخیره کنید؛ آن را در Git یا فضای عمومی قرار ندهید. ادامه می‌دهید؟'))return;
+    const button=this.$('modernTeacherFile');this.busy=true;button.disabled=true;
     try{
-      const entry=await this.portal.exportStaffQrCredential();
-      // The first print upgrades a legacy QR and may rotate this device's admin
-      // root key/revision. Keep the URL-session cache aligned with the live session.
-      try{sessionStorage.setItem('salehinsc-qr-session',JSON.stringify({id:entry.id,key:entry.key,revision:entry.revision}));}catch{/* Session persistence is optional. */}
-      const url=`${location.origin}${location.pathname}${SalehinBackend.makeQrFragment(entry.id,entry.key,entry.revision)}`;
-      this.printWindow([{kind:'staff',title:'ورود معلمان',url,instruction:'این کد را فقط دبیران مورد اعتماد مدرسه اسکن کنند. پس از ورود می‌توانید پرونده دانش‌آموزان، نمره‌ها و پیام‌ها را مدیریت کنید.'}],'برگه ورود معلمان',popup);
-    }catch(error){popup.close();this.toast(errorText(error));}
-    finally{this.busy=false;this.$('modernTeacherQr').disabled=false;}
-  }
-  async rotateTeacherQr(){
-    if(this.view?.role!=='admin'||!this.ensureModernWriteAccess()||this.busy)return;
-    if(!await this.confirm('با ساخت QR تازه، کد قبلی دبیران بلافاصله از اعتبار می‌افتد. برگه قبلی را جمع‌آوری کنید. ادامه می‌دهید؟'))return;
-    const popup=window.open('about:blank','_blank');if(!popup){this.toast('مرورگر پنجره چاپ را مسدود کرد.');return;}
-    this.busy=true;this.$('modernRotateTeacherQr').disabled=true;
-    try{
-      const entry=await this.portal.rotateQr(this.portal.account.id);
-      const url=`${location.origin}${location.pathname}${SalehinBackend.makeQrFragment(entry.id,entry.key,entry.revision)}`;
-      try{sessionStorage.setItem('salehinsc-qr-session',JSON.stringify({id:entry.id,key:entry.key,revision:entry.revision}));}catch{}
-      this.printWindow([{kind:'staff',title:'ورود معلمان',url,instruction:'این کد تازه جایگزین کد قبلی شده است. فقط دبیران مورد اعتماد مدرسه اسکن کنند و برگه قبلی را از دسترس خارج کنید.'}],'QR تازه ورود معلمان',popup);
-      this.toast('QR دبیران تعویض شد؛ کد قبلی دیگر معتبر نیست.');
-    }catch(error){popup.close();this.toast(errorText(error));}
-    finally{this.busy=false;this.$('modernRotateTeacherQr').disabled=false;}
+      const entry=await this.portal.rotateLocalTeacherAccess();
+      const config=globalThis.SALEHIN_CONFIG||{};
+      const html=globalThis.SalehinTeacherLocal.buildTeacherLauncherHtml({
+        appUrl:config.baseUrl||new URL('./',location.href).href,
+        id:entry.id,key:entry.key,revision:entry.revision,
+        schoolName:config.schoolName||'مدرسه صالحین'
+      });
+      try{const fragment=SalehinBackend.makeQrFragment(entry.id,entry.key,entry.revision);sessionStorage.setItem('salehinsc-qr-session',JSON.stringify(this.parseQrValue(fragment)));}catch{}
+      this.download('teacher.html',new Blob([html],{type:'text/html;charset=utf-8'}));
+      this.toast('فایل خصوصی دبیر ساخته شد. فایل قبلی دیگر معتبر نیست.');
+    }catch(error){this.toast(errorText(error));}
+    finally{this.busy=false;button.disabled=false;}
   }
   async rotateCurrentStudentQr(){
     const qr=this.currentQr;if(!qr?.id||qr.kind!=='student'||!this.ensureModernWriteAccess()||this.busy)return;
     if(!await this.confirm(`کد قبلی «${qr.name}» باطل و QR تازه صادر شود؟`))return;
     this.busy=true;
-    try{const result=await this.portal.rotateQr(qr.id);const url=`${location.origin}${location.pathname}${SalehinBackend.makeQrFragment(result.id,result.key,result.revision)}`;this.showModernQrLink(qr.name,url,{kind:'student',grade:qr.grade,id:qr.id});await this.refreshDirectory();this.toast('QR دانش‌آموز تعویض شد.');}
+    try{const result=await this.portal.rotateQr(qr.id);const url=this.studentQrUrl({id:result.id,key:result.key,revision:result.revision});this.showModernQrLink(qr.name,url,{kind:'student',grade:qr.grade,id:qr.id});await this.refreshDirectory();this.toast('QR دانش‌آموز تعویض شد.');}
     catch(error){this.toast(errorText(error));}
     finally{this.busy=false;}
   }
@@ -408,7 +449,7 @@ class SchoolUI {
   modernGateMessage(text,isError=false){
     const target=this.$('modernGateStatus');target.textContent=text;target.classList.toggle('is-error',Boolean(isError));
     this.$('modernGate').hidden=false;this.$('modernDashboard').hidden=true;
-    this.$('modernRefresh').hidden=true;this.$('modernEndView').hidden=true;
+    this.$('modernRefresh').hidden=true;this.$('modernEndView').hidden=true;this.$('modernSettings').hidden=true;
   }
   modernNotice(text,isError=false){
     const target=this.$('modernStatus');target.textContent=text;target.hidden=!text;target.classList.toggle('is-error',Boolean(isError));
@@ -428,10 +469,11 @@ class SchoolUI {
     return [...legacy,...separate,...messages].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   }
   renderModern(){
-    if(!this.view){this.modernGateMessage('برای مشاهده اطلاعات، QR اختصاصی دانش‌آموز یا دبیر را اسکن کنید.');return;}
+    if(!this.view){this.modernGateMessage('دانش‌آموزان با QR شخصی وارد می‌شوند؛ دبیر اصلی فایل خصوصی teacher.html را باز می‌کند.');return;}
     const view=this.view,staff=['teacher','admin'].includes(view.role),scores=this.scoreRecords(),messages=this.allMessages();
     this.$('modernGate').hidden=true;this.$('modernDashboard').hidden=false;
     this.$('modernRefresh').hidden=false;this.$('modernEndView').hidden=false;
+    this.$('modernSettings').hidden=view.role!=='admin'||Boolean(this.portal.preview);
     const sharedStaff=view.role==='admin';
     this.$('modernStudentName').textContent=sharedStaff?'پنل دبیران':(view.profile?.name||'دانش‌آموز');
     this.$('modernStudentMeta').textContent=sharedStaff?`${number(this.studentAccounts().length)} دانش‌آموز فعال`:[view.profile?.grade,view.site?.schoolYear].filter(Boolean).join('  ·  ')||'مدرسه صالحین';
@@ -441,8 +483,7 @@ class SchoolUI {
     this.$('modernComposeMessage').hidden=view.role!=='teacher';
     this.$('modernAddScore').hidden=view.role!=='teacher';
     this.$('modernExportQr').hidden=view.role!=='admin'||Boolean(this.portal.preview);
-    this.$('modernTeacherQr').hidden=view.role!=='admin'||Boolean(this.portal.preview);
-    this.$('modernRotateTeacherQr').hidden=view.role!=='admin'||Boolean(this.portal.preview);
+    this.$('modernTeacherFile').hidden=view.role!=='admin'||Boolean(this.portal.preview);
     this.$('modernRosterSection').hidden=!sharedStaff;
     this.$('modernToolbar').hidden=sharedStaff;
     this.$('modernScoresSection').hidden=sharedStaff;
@@ -527,7 +568,7 @@ class SchoolUI {
     try{
       const entries=(await this.portal.exportQrCredentials()).filter(item=>item.role==='student');
       if(!entries.length)throw new Error('هیچ دانش‌آموز فعالی برای صدور QR پیدا نشد.');
-      const cards=entries.map(entry=>({kind:'student',title:'ورود دانش‌آموز',name:entry.name,grade:entry.grade?`کلاس ${entry.grade}`:'',url:`${location.origin}${location.pathname}${SalehinBackend.makeQrFragment(entry.id,entry.key,entry.revision)}`,instruction:'این کد را با دوربین تلفن همراه اسکن کنید تا کارنامه و پیام‌های شخصی شما باز شود. آن را محرمانه نگه دارید.'}));
+      const cards=entries.map(entry=>({kind:'student',title:'ورود دانش‌آموز',name:entry.name,grade:entry.grade?`کلاس ${entry.grade}`:'',url:this.studentQrUrl(entry),instruction:'این کد را با دوربین تلفن همراه اسکن کنید تا کارنامه و پیام‌های شخصی شما باز شود. آن را محرمانه نگه دارید.'}));
       this.printWindow(cards,'برگه‌های ورود دانش‌آموزان',popup);
       this.toast(`${number(cards.length)} برگه QR آماده چاپ شد. برگه‌ها را فقط به صاحب هر کد تحویل دهید.`);
     }catch(error){popup.close();this.toast(errorText(error));}
@@ -545,8 +586,49 @@ class SchoolUI {
   }
   selectLoginRole(role){this.loginRole=role;this.$('loginHeading').textContent='ورود به سامانه';}
   async login(event){event.preventDefault();if(this.busy)return;this.busy=true;const epoch=++this.epoch;this.$('loginBtn').disabled=true;this.status('loginStatus','در حال ورود…');try{const view=await this.portal.login(this.$('loginKey').value,this.$('loginPassword').value);if(epoch!==this.epoch)return;this.$('loginForm').reset();this.applyView(view);await this.refreshDirectory();this.status('loginStatus','');}catch(error){this.status('loginStatus',errorText(error),'error');}finally{this.$('loginPassword').value='';this.$('loginBtn').disabled=false;this.busy=false;}}
-  async logout(){++this.epoch;try{try{sessionStorage.removeItem('salehinsc-qr-session');}catch{}await this.portal.logout();this.clearSession();}catch(error){this.notice(errorText(error),'error');}}
-  clearSession(){this.releaseUrls();this.disposeCropSource();this.clearCropSelection();this.settingsDraftDirty.clear();this.profileUpdatePending=false;this.profileAvatarPending=false;this.settingsAccountId='';this.view=null;this.accounts=[];this.files=[];this.pending=false;this.$('loginView').classList.remove('hidden');this.$('appView').classList.add('hidden');this.$('appView').classList.remove('offline-mode');this.$('logoutBtn').classList.add('hidden');document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());for(const id of ['composerForm','accountForm','scoreForm','profileForm','siteForm','loginForm'])this.$(id)?.reset();for(const id of ['messageFeed','accountsContent','scoresContent','scoreSummary','filesContent','rosterContent','profileAvatar','mainNav','quickLinks','recipientChoices','assignmentChoices','createdCredentials','composerAttachments','scoreStudent'])this.$(id).replaceChildren();for(const id of ['profileName','profileAccountName','profileGrade','profileSubject','profileYear','profileRole','settingsAvatarPreview','settingsName','settingsTitle','settingsSubject','accountLoginKey','accountName','accountGrade','accountSubject','scoreFeedback','messageBody','confirmPassword']){const node=this.$(id);if(node){if('value'in node)node.value='';else node.textContent='';}}this.$('portalLabel').textContent='درگاه مدرسه';this.notice('');this.modernGateMessage('برای مشاهده اطلاعات، QR اختصاصی دانش‌آموز یا دبیر را اسکن کنید.');this.modernNotice('');this.selectLoginRole(this.loginRole||'student');}
+  async logout(){
+    ++this.epoch;
+    try{sessionStorage.removeItem('salehinsc-qr-session');}catch{}
+    let logoutError=null;
+    try{await this.portal.logout();}catch(error){logoutError=error;}
+    // Hiding the account is a local security action. It must not depend on
+    // IndexedDB/session cleanup succeeding, especially on a shared school PC.
+    try{this.clearSession();}catch(error){logoutError=logoutError||error;}
+    finally{
+      this.view=null;this.accounts=[];this.files=[];
+      const gate=this.$('modernGate'),dashboard=this.$('modernDashboard');
+      if(gate)gate.hidden=false;
+      if(dashboard)dashboard.hidden=true;
+      for(const id of ['modernRefresh','modernEndView','modernSettings']){const node=this.$(id);if(node)node.hidden=true;}
+    }
+    if(logoutError){
+      this.modernGateMessage('دسترسی این دستگاه بسته شد، اما پاک‌سازی کامل نشست ذخیره‌شده با خطا روبه‌رو شد. اتصال را بررسی کنید.',true);
+      this.notice(errorText(logoutError),'error');
+    }
+  }
+  clearSession(){
+    this.releaseUrls();this.disposeCropSource();this.clearCropSelection();
+    this.settingsDraftDirty.clear();this.profileUpdatePending=false;this.profileAvatarPending=false;this.settingsAccountId='';
+    this.view=null;this.accounts=[];this.files=[];this.pending=false;
+    this.$('loginView').classList.remove('hidden');this.$('appView').classList.add('hidden');this.$('appView').classList.remove('offline-mode');this.$('logoutBtn').classList.add('hidden');
+    document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());
+    for(const id of ['composerForm','accountForm','scoreForm','profileForm','siteForm','loginForm','modernAddStudentForm','modernStudentForm','modernScoreForm','modernMessageForm'])this.$(id)?.reset();
+    for(const id of ['messageFeed','accountsContent','scoresContent','scoreSummary','filesContent','rosterContent','profileAvatar','mainNav','quickLinks','recipientChoices','assignmentChoices','createdCredentials','composerAttachments','scoreStudent','modernRoster','modernDetailScores','modernDetailMessages','modernScoreSummary','modernScores','modernMessages'])this.$(id)?.replaceChildren();
+    for(const id of ['profileName','profileAccountName','profileGrade','profileSubject','profileYear','profileRole','settingsAvatarPreview','settingsName','settingsTitle','settingsSubject','accountLoginKey','accountName','accountGrade','accountSubject','scoreFeedback','messageBody','confirmPassword','modernStudentName','modernStudentMeta','modernRosterCount','modernMessageCount','modernScoreCount','modernMessageTotal','modernDetailScoreCount','modernDetailMessageCount','modernQrLink','modernEditStudentId','modernEditStudentName','modernEditStudentGrade','modernNewStudentName','modernNewStudentGrade','modernScoreTitle','modernScoreValue','modernScoreFeedback','modernMessageTitle','modernMessageBody']){
+      const node=this.$(id);if(node){if('value'in node)node.value='';else node.textContent='';}
+    }
+    this.$('modernQrImage')?.replaceChildren();
+    const qrLinkField=this.$('modernQrLinkField');if(qrLinkField)qrLinkField.hidden=true;
+    this.$('modernCopyQrLink').hidden=true;this.$('modernQrStatus').textContent='';
+    this.$('modernQrDescription').textContent='این QR کلید خصوصی دسترسی دانش‌آموز است. آن را فقط به همان دانش‌آموز یا خانواده‌اش تحویل دهید.';
+    this.currentQr=null;this.currentQrSvg='';this.currentStudent=null;
+    this.$('modernRosterSearch').value='';this.$('modernShowDisabled').checked=false;
+    const classFilter=this.$('modernRosterClass');const allClasses=element('option','','همه کلاس‌ها');allClasses.value='';classFilter.replaceChildren(allClasses);classFilter.value='';
+    this.$('modernConnection').textContent='آماده';this.$('modernSyncTime').textContent='اطلاعات به‌روز';
+    this.$('portalLabel').textContent='درگاه مدرسه';this.notice('');
+    this.modernGateMessage('دانش‌آموزان با QR شخصی وارد می‌شوند؛ دبیر اصلی فایل خصوصی teacher.html را باز می‌کند.');
+    this.modernNotice('');this.selectLoginRole(this.loginRole||'student');
+  }
   async refresh({initial=false,quiet=false}={}){
     if(this.refreshing)return;
     this.refreshing=true;
@@ -587,37 +669,20 @@ class SchoolUI {
     }finally{this.refreshing=false;}
   }
   applyView(view){
+    if(!view||!view.profile||!['student','teacher','admin'].includes(view.role)){
+      throw new Error('پرونده دریافتی ساختار یا نقش معتبر ندارد.');
+    }
     const previousAccountId=this.view?.id;
-    const unchangedVisibleView=Boolean(this.view&&previousAccountId===view?.id&&this.renderKey(this.currentView,this.view)===this.renderKey(this.currentView,view));
-    if(previousAccountId&&previousAccountId!==view?.id){this.releaseUrls();this.disposeCropSource();this.clearCropSelection();this.settingsDraftDirty.clear();this.settingsAccountId='';}
+    if(previousAccountId&&previousAccountId!==view.id){
+      this.releaseUrls();this.disposeCropSource();this.clearCropSelection();
+      this.settingsDraftDirty.clear();this.settingsAccountId='';
+    }
     this.view=view;
     this.accounts=Array.isArray(view.directory)?view.directory:[];
-    this.$('appView').classList.toggle('offline-mode',Boolean(view.offline));
-    this.$('loginView').classList.add('hidden');
-    this.$('appView').classList.remove('hidden');
-    this.$('logoutBtn').classList.remove('hidden');
-    this.$('portalLabel').textContent=`پنل ${ROLE_LABELS[view.role]}`;
-    this.$('schoolName').textContent=view.site?.schoolName||'مدرسه صالحین';
-    this.$('profileName').textContent=view.profile.name;
-    this.$('profileAccountName').textContent=view.profile.name;
-    this.$('profileGrade').textContent=view.profile.grade||'—';
-    this.$('profileYear').textContent=view.site?.schoolYear||'—';
-    this.$('profileSubject').textContent=view.profile.subject||view.profile.title||'';
-    this.$('profileRole').replaceChildren(icon(view.role==='student'?'graduation':'shield'),document.createTextNode(ROLE_LABELS[view.role]));
-    this.$('profileAvatar').setAttribute('aria-label',this.isStaff()?'ویرایش تصویر و مشخصات پروفایل':'تصویر حساب کاربری');
-    if(this.isStaff()){this.$('profileAvatar').setAttribute('role','button');this.$('profileAvatar').setAttribute('tabindex','0');}else{this.$('profileAvatar').removeAttribute('role');this.$('profileAvatar').setAttribute('tabindex','-1');}
-    this.$('profileAvatar').classList.toggle('is-editable',Boolean(this.isStaff()));
-    if(view.profile.avatar&&!view.offline)this.loadAvatar(view.profile.avatar);
-    else if(!view.profile.avatar||!this.avatarUrl)this.showAvatarInitials();
-    this.$('profileSettingsBtn').classList.toggle('hidden',!this.isStaff());
-    this.$('composeBtn').classList.toggle('hidden',!this.isStaff());
-    this.$('newScoreBtn').classList.toggle('hidden',!this.isStaff());
-    this.$('adminSettings').classList.toggle('hidden',view.role!=='admin');
-    this.renderNavigation();
-    if(!this.accessibleViews().includes(this.currentView))this.currentView='messages';
-    this.navigate(this.currentView,{preserveIfUnchanged:unchangedVisibleView});
-    this.$('syncTime').textContent=view.offline?`نسخه محلی: ${formatDate(view.cacheTimestamp||new Date(),true)}`:`آخرین دریافت: ${formatDate(new Date(),true)}`;
-    if(this.portal.preview)this.notice('حالت پیش‌نمایش · اطلاعات این صفحه نمونه است و هیچ تغییری در GitHub ایجاد نمی‌شود.');
+
+    // The modern portal is the only visible application shell. Do not render
+    // the retired legacy workspace here: it is hidden by modern.css and its
+    // DOM has no role in the current student/teacher workflow.
     this.renderModern();
   }
   releaseTransientUrls(){for(const url of this.urls)URL.revokeObjectURL(url);this.urls.clear();}

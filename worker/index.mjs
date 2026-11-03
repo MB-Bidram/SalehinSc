@@ -95,15 +95,48 @@ async function readCatalog(env, cfg) {
   validateCatalog(catalog, cfg.scope);
   return catalog;
 }
+const TEACHER_DIRECTORY_PATH = 'data/teachers/teacher.json';
+async function readTeacherDirectory(env, cfg) {
+  const result = await github(env, `/contents/${TEACHER_DIRECTORY_PATH}?ref=${encodeURIComponent(cfg.branch)}`);
+  check(result.encoding === 'base64' && typeof result.content === 'string', 'فهرست دبیر اصلی در مخزن پیدا نشد؛ مهاجرت فهرست دبیران را اجرا کنید.', 409);
+  let directory;
+  try { directory = JSON.parse(dec.decode(unb64(result.content.replace(/\s/g, '')))); }
+  catch { fail('فهرست دبیر اصلی معتبر نیست.', 409); }
+  validateTeacherDirectory(directory);
+  return directory;
+}
+function validateTeacherDirectory(directory) {
+  check(directory && directory.format === 'SalehinSc teacher directory' && directory.version === 1
+    && ID64.test(directory.primaryTeacherId || '') && Array.isArray(directory.teachers)
+    && directory.teachers.length >= 1 && directory.teachers.length <= 100,
+  'فهرست دبیران معتبر نیست.', 409);
+  const ids = new Set();
+  for (const teacher of directory.teachers) {
+    check(teacher && ID64.test(teacher.id || '') && !ids.has(teacher.id)
+      && typeof teacher.active === 'boolean' && ['primary', 'teacher'].includes(teacher.kind),
+    'یک ورودی فهرست دبیران معتبر نیست.', 409);
+    ids.add(teacher.id);
+  }
+  const primary = directory.teachers.filter(teacher => teacher.kind === 'primary');
+  check(primary.length === 1 && primary[0].id === directory.primaryTeacherId && primary[0].active,
+    'دسترسی دبیر اصلی غیرفعال یا نامعتبر است.', 403);
+  return directory;
+}
 function validateCatalog(catalog, scope) {
   check(catalog && catalog.format === 'SalehinSc portal' && catalog.version === 4 && catalog.scope === scope, 'This repository does not contain the expected SalehinSc catalogue.', 409);
   check(Array.isArray(catalog.students) && catalog.students.length <= 20000, 'The school catalogue is invalid.', 409);
   const ids = new Set();
   for (const account of catalog.students) {
-    check(account && ID64.test(account.id || '') && !ids.has(account.id) && account.auth && ID64.test(account.auth.revision || ''), 'A school account in the catalogue is invalid.', 409);
+    check(account && ID64.test(account.id || '') && !ids.has(account.id) && account.auth && ID32.test(account.auth.revision || ''), 'A school account in the catalogue is invalid.', 409);
     ids.add(account.id);
     check(['student', 'teacher', 'admin'].includes(account.role || 'student'), 'An account role is invalid.', 409);
-    if (account.qrAccess) check(ID32.test(account.qrAccess.revision || '') && typeof account.qrAccess.wrappedKey === 'string' && account.qrAccess.wrappedKey.length < 4096, 'A QR access grant is invalid.', 409);
+    if (account.qrAccess) {
+      const wrapped = account.qrAccess.wrappedKey;
+      check(ID32.test(account.qrAccess.revision || '') && wrapped?.algorithm === 'A256GCM'
+        && typeof wrapped.iv === 'string' && wrapped.iv.length <= 64
+        && typeof wrapped.ciphertext === 'string' && wrapped.ciphertext.length >= 16 && wrapped.ciphertext.length <= 4096,
+      'A QR access grant is invalid.', 409);
+    }
   }
 }
 function revision(account) {
@@ -134,6 +167,26 @@ async function authorize(payload, catalog, cfg, roles, format, action) {
   check(revision(actor) === payload.actorRevision, 'این QR لغو یا جایگزین شده است.', 403);
   await verifySigned(payload, actor);
   return actor;
+}
+async function authorizePrimaryTeacher(payload, catalog, directory, cfg, format, action) {
+  const actor = await authorize(payload, catalog, cfg, ['admin'], format, action);
+  validateTeacherDirectory(directory);
+  check(directory.primaryTeacherId === actor.id, 'این QR متعلق به دبیر اصلی فعال نیست.', 403);
+  const entry = directory.teachers.find(teacher => teacher.id === actor.id && teacher.kind === 'primary');
+  check(entry?.active === true, 'دسترسی دبیر اصلی لغو شده است.', 403);
+  return actor;
+}
+async function authorizeListedTeacher(payload, catalog, directory, cfg, format, action) {
+  const actor = await authorize(payload, catalog, cfg, ['teacher'], format, action);
+  validateTeacherDirectory(directory);
+  const entry = directory.teachers.find(teacher => teacher.id === actor.id && teacher.kind === 'teacher');
+  check(entry?.active === true, 'این دبیر در فهرست دسترسی فعال نیست.', 403);
+  return actor;
+}
+async function authorizeStaff(payload, catalog, directory, cfg, format, action) {
+  const candidate = catalog.students.find(item => item.id === payload?.actorId);
+  if (candidate?.role === 'admin') return authorizePrimaryTeacher(payload, catalog, directory, cfg, format, action);
+  return authorizeListedTeacher(payload, catalog, directory, cfg, format);
 }
 function safePath(path) {
   return path === 'data/portal.json'
@@ -235,11 +288,13 @@ async function submitRequest(env, cfg, body) {
   try { envelope = JSON.parse(issue.body); } catch { fail('اطلاعات مرحله‌بندی معتبر نیست.'); }
   check(envelope?.format === 'SalehinSc staging envelope v1' && Array.isArray(envelope.files), 'پیوست‌های مرحله‌بندی پیدا نشدند.', 409);
   const catalog = await readCatalog(env, cfg);
-  const actor = await authorize(body.request, catalog, cfg, ['teacher'], 'SalehinSc signed request');
+  const teachers = await readTeacherDirectory(env, cfg);
+  const actor = await authorizeStaff(body.request, catalog, teachers, cfg, 'SalehinSc signed request');
   check(body.request.operation === 'message' || body.request.operation === 'profile', 'نوع درخواست مجاز نیست.');
+  check(actor.role !== 'admin' || body.request.operation === 'profile', 'دبیر اصلی باید تغییرات پیام را از مسیر ثبت مستقیم انجام دهد.', 403);
   check(envelope.proof?.actorId === actor.id && envelope.proof?.requestId === body.request.id && envelope.proof?.scope === cfg.scope, 'این درخواست به QR فعلی تعلق ندارد.', 403);
-  await authorize(envelope.proof, catalog, cfg, ['teacher'], 'SalehinSc staging request');
-  check(revision(actor) === envelope.proof.actorRevision, 'QR دبیر لغو شده است.', 403);
+  await authorizeStaff(envelope.proof, catalog, teachers, cfg, 'SalehinSc staging request');
+  check(revision(actor) === envelope.proof.actorRevision, 'مجوز دسترسی دبیر لغو یا جایگزین شده است.', 403);
   check(envelope.proof.signature && envelope.files.length === body.request.files.length, 'فهرست پیوست‌ها یکسان نیست.', 409);
   for (let i = 0; i < envelope.files.length; i++) {
     const a = envelope.files[i], b = body.request.files[i];
@@ -259,15 +314,53 @@ async function handle(request, env) {
   let body;
   try { body = bodyText ? JSON.parse(bodyText) : {}; } catch { fail('بدنه درخواست معتبر نیست.'); }
   if (url.pathname === '/v1/health') return Response.json({ ok: true, repository: `${cfg.owner}/${cfg.repo}` });
+  if (url.pathname === '/v1/teacher-entry') {
+    const catalog = await readCatalog(env, cfg);
+    const teachers = await readTeacherDirectory(env, cfg);
+    const actor = await authorizeListedTeacher(body, catalog, teachers, cfg, 'SalehinSc worker request', 'teacher-entry');
+    return Response.json({ ok: true, teacherId: actor.id, role: 'teacher' });
+  }
   if (url.pathname === '/v1/snapshot') {
     const catalog = await readCatalog(env, cfg);
-    await authorize(body, catalog, cfg, ['admin'], 'SalehinSc worker request', 'snapshot');
+    const teachers = await readTeacherDirectory(env, cfg);
+    await authorizePrimaryTeacher(body, catalog, teachers, cfg, 'SalehinSc worker request', 'snapshot');
     const head = await currentHead(env, cfg);
     return Response.json({ head, catalog });
   }
+  if (url.pathname === '/v1/connection-test') {
+    // This check is deliberately signed by the primary-teacher local credential. It never
+    // accepts a GitHub token from the browser and never returns credential data.
+    const catalog = await readCatalog(env, cfg);
+    const teachers = await readTeacherDirectory(env, cfg);
+    await authorizePrimaryTeacher(body, catalog, teachers, cfg, 'SalehinSc worker request', 'connection-test');
+    const repo = await github(env, '');
+    check(String(repo.full_name || '').toLowerCase() === `${cfg.owner}/${cfg.repo}`.toLowerCase(), 'توکن به مخزن تنظیم‌شده دسترسی ندارد.', 403);
+    const head = await currentHead(env, cfg);
+    // Read-only probes verify that the token can reach the workflow and issue
+    // APIs used by the publishing pipeline. No test issue or workflow run is made.
+    await github(env, '/issues?state=open&per_page=1');
+    const workflow = await github(env, `/actions/workflows/${PUBLISH_WORKFLOW}`);
+    return Response.json({
+      ok: true,
+      repository: `${cfg.owner}/${cfg.repo}`,
+      branch: cfg.branch,
+      head,
+      checks: {
+        tokenAccepted: true,
+        repositoryAccessible: true,
+        branchAccessible: true,
+        catalogueReadable: true,
+        issuesApiReadable: true,
+        publishWorkflowReadable: Boolean(workflow?.id),
+        repositoryPushRole: repo.permissions?.push === true
+      },
+      writePermissionNote: 'GitHub does not expose a safe read-only probe for every fine-grained write permission. Actual commit and workflow dispatch requests remain the definitive write checks.'
+    });
+  }
   if (url.pathname === '/v1/commit') {
     const catalog = await readCatalog(env, cfg);
-    const actor = await authorize(body, catalog, cfg, ['admin'], 'SalehinSc admin commit');
+    const teachers = await readTeacherDirectory(env, cfg);
+    const actor = await authorizePrimaryTeacher(body, catalog, teachers, cfg, 'SalehinSc admin commit');
     check(typeof body.expectedHead === 'string' && /^[a-f0-9]{40}$/.test(body.expectedHead), 'نسخه مبنای مخزن معتبر نیست.');
     validateCatalog(body.catalog, cfg.scope);
     const candidateAdmin = body.catalog.students.find(item => item.id === actor.id);
@@ -277,8 +370,9 @@ async function handle(request, env) {
   }
   if (url.pathname === '/v1/stage') {
     const catalog = await readCatalog(env, cfg);
+    const teachers = await readTeacherDirectory(env, cfg);
     const proof = body.proof;
-    const actor = await authorize(proof, catalog, cfg, ['teacher'], 'SalehinSc staging request');
+    const actor = await authorizeStaff(proof, catalog, teachers, cfg, 'SalehinSc staging request');
     check(ID32.test(proof.requestId || ''), 'شناسه درخواست نامعتبر است.');
     check(Array.isArray(proof.files) && proof.files.length === body.files?.length, 'فهرست پیوست‌ها معتبر نیست.');
     const result = await stageFiles(env, cfg, proof, actor, body.files);
@@ -315,4 +409,4 @@ export default {
   }
 };
 
-export const workerInternals = Object.freeze({ canonical, sha256, revision, validateCatalog, safePath, safeAttachmentPath, verifySigned, authorize, timestampCheck, publishWorkflow: PUBLISH_WORKFLOW });
+export const workerInternals = Object.freeze({ canonical, sha256, revision, validateCatalog, validateTeacherDirectory, safePath, safeAttachmentPath, verifySigned, authorize, authorizePrimaryTeacher, authorizeListedTeacher, authorizeStaff, timestampCheck, publishWorkflow: PUBLISH_WORKFLOW, teacherDirectoryPath: TEACHER_DIRECTORY_PATH });

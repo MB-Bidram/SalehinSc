@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const { RolePortal, createBootstrap, validateRequest, sign, verify, digest, credentialRevision } = require('../role-backend.js');
 const { cryptography: C, generateLoginKey } = require('../backend.js');
 const { publish } = require('../scripts/publish-request.cjs');
+const { createTeacherDirectory } = require('../scripts/bootstrap-portal.cjs');
 const config = { owner:'test-school', repo:'portal', branch:'main', dataPath:'data/portal.json', apiVersion:'2026-03-10' };
 const password = 'a strong test password';
 class Store {
@@ -14,7 +15,7 @@ class Store {
   async delete(key){this.values.delete(key);}
 }
 class Repository {
-  constructor(catalog,files=[]){this.catalog=catalog;this.head=0;this.files=new Map(files.map(file=>[file.path,JSON.parse(file.content)]));this.api='https://api.github.com/repos/test-school/portal';this.issues=new Map();this.comments=new Map();this.calls=[];}
+  constructor(catalog,files=[]){this.catalog=catalog;this.head=0;this.files=new Map(files.map(file=>[file.path,JSON.parse(file.content)]));this.files.set('data/teachers/teacher.json',createTeacherDirectory({ ...catalog, students:catalog.students.filter(account=>account.role==='admin') }));this.api='https://api.github.com/repos/test-school/portal';this.issues=new Map();this.comments=new Map();this.calls=[];}
   async connect(){return {};}
   disconnect(){}
   async snapshot(){return {head:this.head,catalog:structuredClone(this.catalog)};}
@@ -65,6 +66,7 @@ async function fixture(){
   const studentLogin=generateLoginKey(), studentAccount=await admin.createAccount({role:'student',loginKey:studentLogin,password,profile:{name:'Private student',grade:'7'}});
   const outsiderLogin=generateLoginKey(), outsiderAccount=await admin.createAccount({role:'student',loginKey:outsiderLogin,password,profile:{name:'Other student',grade:'8'}});
   const teacherLogin=generateLoginKey(), teacherAccount=await admin.createAccount({role:'teacher',loginKey:teacherLogin,password,profile:{name:'Private teacher',grade:'Teacher',subject:'Math'},assignedIds:[studentAccount.id]});
+  repository.files.get('data/teachers/teacher.json').teachers.push({id:teacherAccount.id,kind:'teacher',active:true});
   const teacher=new RolePortal(config,{repository,store:new Store(),worker}),student=new RolePortal(config,{repository,store:new Store()}),outsider=new RolePortal(config,{repository,store:new Store()});
   await teacher.login(teacherLogin,password);await student.login(studentLogin,password);await outsider.login(outsiderLogin,password);
   return {admin,teacher,student,outsider,repository,adminLogin,studentLogin,teacherLogin,studentAccount,outsiderAccount,teacherAccount,store,worker};
@@ -78,17 +80,17 @@ test('bootstrap and role records hide credentials, identity keys and private nam
   assert.deepEqual((await f.teacher.loadDirectory()).map(s=>s.id),[f.studentAccount.id]);
   const otherAdmin=new RolePortal(config,{repository:f.repository,store:new Store(),worker:f.worker});await otherAdmin.login(f.adminLogin,password);await otherAdmin.connectAdmin();assert.equal((await otherAdmin.loadDirectory()).length,4);
 });
-test('administrator QR export returns compact access keys for active students and teachers only',async()=>{
+test('student QR export returns access keys for active students only',async()=>{
   const f=await fixture();
   const entries=await f.admin.exportQrCredentials();
-  assert.equal(entries.length,3);
+  assert.equal(entries.length,2);
   const byId=new Map(entries.map(entry=>[entry.id,entry]));
   assert.equal(byId.get(f.studentAccount.id).name,'Private student');
   assert.equal(byId.get(f.outsiderAccount.id).name,'Other student');
-  assert.equal(byId.get(f.teacherAccount.id).name,'Private teacher');
+  assert.equal(byId.has(f.teacherAccount.id),false);
   for(const entry of entries){
     assert.match(entry.key,/^[A-Za-z0-9_+/]{43}=$/);
-    assert.ok(['student','teacher'].includes(entry.role));
+    assert.equal(entry.role,'student');
   }
   assert.ok(!entries.some(entry=>entry.id===f.admin.account.id));
   assert.ok(!JSON.stringify(entries).includes(password));
@@ -138,17 +140,17 @@ test('student QR rotation re-keys the dossier, revokes the old QR, and preserves
   assert.equal(refreshed.scores[0].score.score,17);
 });
 
-test('administrator QR rotation re-keys the admin and keeps old message signatures readable',async()=>{
+test('local teacher-file credential rotation re-keys the admin and keeps old message signatures readable',async()=>{
   const f=await fixture();
   await f.admin.publishMessage({...input(f.studentAccount.id),title:'Old admin announcement'});
   const oldRootKey=f.admin.session.key;
-  const oldQr=await f.admin.exportStaffQrCredential();
+  const oldLocalCredential=await f.admin.rotateLocalTeacherAccess();
   const previousSigningKey=f.admin.account.signingKey;
   const replacement=await f.admin.rotateQr(f.admin.account.id);
   assert.notEqual(f.admin.session.key,oldRootKey);
   assert.notDeepEqual(f.admin.account.signingKey,previousSigningKey);
   await assert.rejects(f.admin.decodeStudent(f.admin.account,oldRootKey));
-  await assert.rejects(new RolePortal(config,{repository:f.repository,store:new Store(),worker:f.worker}).loginWithQr(oldQr.id,oldQr.key,oldQr.revision),{code:'QR_INVALID'});
+  await assert.rejects(new RolePortal(config,{repository:f.repository,store:new Store(),worker:f.worker}).loginWithQr(oldLocalCredential.id,oldLocalCredential.key,oldLocalCredential.revision),{code:'QR_INVALID'});
   await f.admin.publishMessage({...input(f.studentAccount.id),title:'New admin announcement'});
   const studentView=await f.student.refreshStudent();
   assert.deepEqual(studentView.messages.map(message=>message.title).sort(),['New admin announcement','Old admin announcement']);
@@ -158,14 +160,14 @@ test('administrator QR rotation re-keys the admin and keeps old message signatur
   assert.equal(qrAdmin.admin,true);
 });
 
-test('first staff QR print upgrades a legacy admin credential without losing the active session',async()=>{
+test('first local teacher-file creation upgrades a legacy admin credential without losing the active session',async()=>{
   const f=await fixture();
   const previous=f.repository.catalog.students.find(item=>item.id===f.admin.account.id);
   const oldRootKey=f.admin.session.key;
   const oldFragment=require('../backend.js').makeQrFragment(previous.id,oldRootKey);
   delete previous.qrAccess;
   delete f.admin.account.qrAccess; // Model an administrator who signed in before QR grants existed.
-  const entry=await f.admin.exportStaffQrCredential();
+  const entry=await f.admin.rotateLocalTeacherAccess();
   assert.notEqual(f.admin.session.key,oldRootKey);
   assert.ok(entry.revision);
   const latest=f.repository.catalog.students.find(item=>item.id===entry.id);

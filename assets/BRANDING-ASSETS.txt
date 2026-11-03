@@ -1,0 +1,14 @@
+SalehinSc branding assets
+========================
+
+The uploaded project archive did not contain either requested source logo:
+- Salehin-NobackText (school wordmark)
+- Salehin-Noback (symbol only)
+
+When the original files are available, place them in the project root, assets/,
+or images/ using SVG, PNG, WebP, JPG or JPEG extensions. Run setup-salehinsc.bat
+again. The wizard detects the two names, preserves the file bytes and extensions,
+copies them into assets/salehin-logo-full.* and assets/salehin-logo-mark.*, and
+connects the symbol to the responsive header and the full wordmark to QR print
+papers. The current interface keeps its neutral Persian monogram fallback until
+the original artwork is supplied; it does not substitute or redraw the logo.

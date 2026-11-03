@@ -1,3 +1,23 @@
+# Current update — private local teacher file (2026-11-03)
+
+- Removed teacher QR creation, printing, rotation controls, the public `/teacher/` entry page and the staff QR maker. Student QR functionality remains.
+- The primary teacher now opens a private local `teacher.html` file. Bootstrap generates it locally for new schools; an authorized live session can download a rotated replacement from the dashboard.
+- `teacher.html` is gitignored and explicitly excluded from the Pages workflow. The file contains a bearer access credential but no GitHub PAT.
+- The app redirects into the project Pages app, which validates the primary-teacher signature and active identity directory with the Cloudflare Worker. The Worker performs GitHub reads/writes using its server-side secret.
+- Replacing the local file rotates the primary dossier/signing identity and invalidates the previous file. Existing student QR codes and encrypted student records are preserved.
+
+The notes below record earlier implementation history; the current no-teacher-QR behavior above supersedes any previous staff QR references in those historical entries.
+
+---
+
+## 2026-11-03 — Dedicated primary-teacher entry and identity directory
+
+- Added a dedicated GitHub Pages project-relative `/teacher/` entry page. Teacher QR links now target that page and retain the QR revision; student QR links continue to target the application root.
+- The entry page requires a signed Worker snapshot after local QR decryption. The Worker validates the active primary account against `data/teachers/teacher.json`; a direct visit without a QR does not authenticate.
+- Added a simple public teacher directory containing identity IDs and active flags only. Bootstrap generates the primary entry; `npm run migrate:primary-teacher` creates it for an existing v4 school without touching existing student, score or message records.
+- Added Worker and GitHub Actions publishing checks for primary-teacher and explicitly listed future teacher IDs. The present UI remains single-teacher; no registration, selection or teacher-management dashboard was added.
+- Fixed the offline staff QR maker to include the QR revision and normalize links to `/teacher/`. Kept `teacher.html` as a compatibility redirect.
+
 ## 2026-11-02 — Secure QR access, Worker publishing and teacher workspace
 
 - Moved GitHub write credentials out of the browser and into a Cloudflare Worker secret. The Worker validates signed account proofs, role, QR revision, timestamps and repository head before accepting changes.
@@ -101,3 +121,23 @@ This ZIP contains the modified project, including the Cloudflare Worker source. 
 - Added conditional GZIP-before-AES-GCM envelopes, retaining AES-256-GCM authentication and backward compatibility.
 - Added local QR export for active student/teacher access keys and an offline printable QR-card script.
 - Added a light-only, responsive RTL interface, keyboard focus styles, reduced-motion handling and mobile touch targets.
+
+
+## November 2, 2026 — connection settings, setup wizard and brand integration
+
+- Added an administrator-only GitHub Connection settings dialog with dynamically detected repository, branch and Worker URL, a signed read-only connection test, status feedback, and copyable Wrangler commands for replacing/removing the server-side secret.
+- Kept the GitHub PAT exclusively in the Cloudflare Worker secret store. The static browser UI intentionally does not accept, reveal, copy or persist the PAT; a browser-local token would be retrievable by anyone with access to the browser profile or developer tools.
+- Added `/v1/connection-test` with a signed administrator proof. It checks token acceptance, repository identity, branch and catalogue reads, Issues API access and the publish workflow without creating test issues or runs, and without returning the token. Write scopes that GitHub cannot safely probe read-only are explicitly reported as requiring a real write/dispatch operation.
+- Corrected Worker catalogue validation to accept the actual 32-character authentication and QR revisions and the structured AES-GCM QR-key wrapper emitted by the portal. Added regression tests for those real catalogue shapes.
+- Added `setup-salehinsc.bat` and `scripts/setup-salehinsc.cjs`: prompts for owner, repository, branch and school name; calculates the Pages project URL; updates only deployment metadata; checks Git state/remotes; preserves `.git` and school data; and never commits, pushes or force-pushes. The Windows npm invocation uses CMD for `npm ci` while Git remains a direct process call.
+- Refined the teacher roster rows, class filter, action buttons, focus states and mobile layout to follow the supplied compact workspace references. Added an admin-only connection-settings entry point.
+- Added optional logo discovery/import for `Salehin-NobackText` and `Salehin-Noback`, preserving original bytes and extensions. Neither source logo was present in the supplied archive, so the neutral monogram fallback remains until the original assets are placed in the project root, `assets/` or `images/`.
+- Added setup wizard and Worker connection-test regression tests. Local verified results: 50 tests across backend, bootstrap, config, Pages, setup-wizard and Worker suites; 23 role/encryption tests; `npm run check` passed. The DOM/IndexedDB suite remains unverified in this environment because `linkedom` and `fake-indexeddb` could not be fully installed here. Live Cloudflare/GitHub credentials and deployment were not available for an end-to-end remote test.
+
+
+## Follow-up reliability fixes
+
+- The modern dashboard now applies refreshed account views directly to the modern shell instead of rendering the retired, hidden legacy workspace first. This prevents an error in hidden legacy DOM from trapping a valid student/teacher session on the QR instruction screen.
+- Logout clears the in-memory decrypted view and its rendered message, score, roster, and QR contents even when local session-storage cleanup reports an error. It keeps the QR form controls mounted so future student QR cards still work. A failed persistence cleanup is surfaced after the interface has been returned to the gate.
+- The roster class filter now creates option elements through `document.createElement` rather than assuming a global `Option` constructor. This works in browsers and the lightweight DOM test environment. The browser-test mock records logout calls, and assertions normalize arrays/objects crossing the VM boundary before comparing them.
+- Added `npm run cleanup:retired-teacher-qr` to remove only the retired teacher QR page and QR-maker file left behind when a ZIP is copied over an older checkout. It does not delete the private root `teacher.html`; that file must be moved outside the repository before removing an old tracked redirect.

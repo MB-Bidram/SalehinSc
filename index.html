@@ -1,21 +1,25 @@
 <!doctype html>
 <html lang="fa" dir="rtl">
 <head>
+  <meta name="salehin-school-name" content="SalehinSc">
+  <meta name="salehin-branch" content="main">
+  <meta name="salehin-repository" content="MB-Bidram/SalehinSc">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7f6f1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="salehin-api" content="">
-  <title>صالحین | سامانه مدرسه</title>
+  <title>SalehinSc | سامانه مدرسه</title>
   <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="modern.css">
-  <script defer src="config.js"></script><script defer src="backend.js"></script><script defer src="role-backend.js"></script><script defer src="qr-code.js"></script><script defer src="app.js"></script>
+  <script defer src="config.js"></script><script defer src="backend.js"></script><script defer src="role-backend.js"></script><script defer src="qr-code.js"></script><script defer src="teacher-local.js"></script><script defer src="app.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#modernMain">رفتن به محتوای اصلی</a>
   <div class="modern-app" id="modernApp">
     <header class="modern-header">
       <a class="modern-brand" href="./" aria-label="صالحین، صفحه اصلی">
-        <span class="modern-brand-mark" aria-hidden="true"></span>
-        <span class="modern-brand-copy"><strong>صالحین</strong><small>کارنامه و ارتباط با مدرسه</small></span>
+        <span class="modern-brand-mark" aria-hidden="true"><img id="modernBrandLogo" alt="" hidden><span id="modernBrandFallback">ص</span></span>
+        <span class="modern-brand-copy"><strong id="modernBrandName">مدرسه صالحین</strong><small>کارنامه و ارتباط با مدرسه</small></span>
       </a>
       <div class="modern-header-actions">
         <span class="modern-live"><i></i><span id="modernConnection">آماده</span></span>
+        <button class="modern-icon-button" id="modernSettings" type="button" aria-label="تنظیمات اتصال گیت‌هاب" title="تنظیمات" hidden><span aria-hidden="true">⚙</span></button>
         <button class="modern-icon-button" id="modernRefresh" type="button" aria-label="به‌روزرسانی اطلاعات" title="به‌روزرسانی"><span aria-hidden="true">↻</span></button>
         <button class="modern-end-button" id="modernEndView" type="button" aria-label="پایان دسترسی در این دستگاه">پایان مشاهده</button>
       </div>
@@ -23,14 +27,14 @@
     <main id="modernMain" class="modern-main">
       <section id="modernGate" class="modern-gate" aria-labelledby="gateTitle">
         <div class="gate-rule"></div>
-        <p class="eyebrow">مدرسه صالحین</p>
+        <div class="modern-gate-brand"><img id="modernBrandLogoFull" class="modern-brand-full" alt="" hidden><p class="eyebrow" id="modernGateBrandFallback">مدرسه صالحین</p></div>
         <h1 id="gateTitle">کارنامه، همیشه<br>همراه شماست.</h1>
-        <p class="gate-copy">برای مشاهده نمره‌ها و پیام‌های مدرسه، کد اختصاصی خود را با دوربین تلفن همراه اسکن کنید.</p>
+        <p class="gate-copy">دانش‌آموزان با QR شخصی خود وارد می‌شوند. دبیر اصلی از فایل خصوصی <bdi dir="ltr">teacher.html</bdi> روی رایانهٔ مدرسه استفاده می‌کند.</p>
         <div class="gate-instruction"><span class="gate-number">۱</span><span>برنامه دوربین را باز کنید.</span><span class="gate-number">۲</span><span>کد اختصاصی صالحین را اسکن کنید.</span></div>
         <p id="modernGateStatus" class="modern-status" role="status" aria-live="polite">برای مشاهده اطلاعات، QR اختصاصی لازم است.</p>
         <div class="modern-gate-teacher">
           <span>دبیر هستید؟</span>
-          <button type="button" class="modern-action secondary" id="modernTeacherEntry">ورود دبیران</button>
+          <span>فایل محلی <bdi dir="ltr">teacher.html</bdi> را روی دستگاه مجاز باز کنید. این فایل در سایت منتشر نمی‌شود.</span>
         </div>
       </section>
       <section id="modernDashboard" class="modern-dashboard" hidden>
@@ -52,8 +56,7 @@
             <select id="modernRosterClass" class="modern-class-filter" aria-label="فیلتر کلاس"><option value="">همه کلاس‌ها</option></select>
             <button type="button" class="modern-action secondary" id="modernComposeBroadcast">ارسال پیام</button>
             <button type="button" class="modern-action secondary" id="modernExportQr">چاپ برگه‌های QR</button>
-            <button type="button" class="modern-action secondary" id="modernTeacherQr">چاپ QR دبیران</button>
-            <button type="button" class="modern-action secondary" id="modernRotateTeacherQr">تعویض QR دبیران</button>
+            <button type="button" class="modern-action secondary" id="modernTeacherFile">ساخت / تعویض فایل خصوصی دبیر</button>
             <button type="button" class="modern-action primary" id="modernAddStudent">＋ افزودن دانش‌آموز</button>
             <label class="modern-show-disabled"><input id="modernShowDisabled" type="checkbox"> نمایش غیرفعال‌ها</label>
           </div>
@@ -87,16 +90,25 @@
       </section>
     </main>
   </div>
-  <dialog id="modernTeacherEntryDialog" class="modern-dialog" aria-labelledby="modernTeacherEntryTitle">
-    <form id="modernTeacherEntryForm">
-      <header><div><p class="eyebrow">دسترسی مشترک دبیران</p><h2 id="modernTeacherEntryTitle">ورود به پنل دبیران</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernTeacherEntryDialog" aria-label="بستن">×</button></header>
-      <div class="modern-dialog-body">
-        <p class="modern-dialog-copy">بهترین راه، اسکن QR مشترک دبیران است. اگر صفحه را دستی باز کرده‌اید، لینک کامل یا فقط بخش بعد از # را اینجا وارد کنید.</p>
-        <label>لینک مشترک دبیران<input id="modernTeacherLink" type="text" dir="ltr" autocomplete="off" required placeholder="https://…/#s=…&k=…"></label>
-        <p id="modernTeacherEntryStatus" class="modern-status" role="status"></p>
+  <dialog id="modernSettingsDialog" class="modern-dialog modern-settings-dialog" aria-labelledby="modernSettingsTitle">
+    <header><div><p class="eyebrow">مدیریت زیرساخت مدرسه</p><h2 id="modernSettingsTitle"><bdi dir="ltr">GitHub Connection</bdi> / اتصال گیت‌هاب</h2></div><button type="button" class="modern-dialog-close" data-modern-close="modernSettingsDialog" aria-label="بستن">×</button></header>
+    <div class="modern-dialog-body">
+      <p class="modern-dialog-copy">اطلاعات مخزن از نشانی GitHub Pages تشخیص داده می‌شود و اعتبارنامه فقط در Cloudflare Worker نگهداری می‌شود.</p>
+      <div class="modern-settings-grid">
+        <label>مالک مخزن<input id="modernGithubOwner" dir="ltr" readonly></label>
+        <label>نام مخزن<input id="modernGithubRepo" dir="ltr" readonly></label>
+        <label>شاخه انتشار<input id="modernGithubBranch" dir="ltr" readonly></label>
+        <label class="full">نشانی سرویس امن<input id="modernGithubApi" dir="ltr" readonly></label>
       </div>
-      <footer><button type="button" class="modern-action secondary" data-modern-close="modernTeacherEntryDialog">انصراف</button><button type="submit" class="modern-action primary" id="modernTeacherEnterButton">ورود</button></footer>
-    </form>
+      <section class="modern-token-panel" aria-labelledby="modernTokenHeading">
+        <div><strong id="modernTokenHeading">توکن شخصی GitHub</strong><span id="modernTokenState" class="modern-token-state">بررسی نشده</span></div>
+        <p>توکن در این صفحه وارد یا ذخیره نمی‌شود؛ فایل‌های ثابت GitHub Pages فضای امنی برای نگهداری رمز ندارند. توکن فعلی در Cloudflare به‌صورت Worker Secret نگهداری می‌شود.</p>
+        <div class="modern-token-actions"><button type="button" class="modern-action secondary" id="modernCopySetToken">کپی دستور تغییر توکن</button><button type="button" class="modern-action secondary" id="modernCopyRemoveToken">کپی دستور حذف توکن</button></div>
+        <code dir="ltr">npx wrangler secret put GITHUB_TOKEN</code>
+      </section>
+      <p id="modernGithubSettingsStatus" class="modern-status" role="status" aria-live="polite"></p>
+    </div>
+    <footer><button type="button" class="modern-action secondary" data-modern-close="modernSettingsDialog">بستن</button><button type="button" class="modern-action primary" id="modernTestGithub">آزمایش اتصال</button></footer>
   </dialog>
   <dialog id="modernAddStudentDialog" class="modern-dialog" aria-labelledby="modernAddStudentTitle">
     <form id="modernAddStudentForm">
@@ -170,8 +182,8 @@
   <main id="mainContent">
     <section id="loginView" class="login-page">
       <div class="login-welcome"><span class="welcome-kicker">مدرسه، نزدیک‌تر از همیشه</span><h1>یک پنجره به<br><em>دنیای مدرسه</em></h1><p>پیام‌های مدرسه، مسیر پیشرفت و اتفاق‌های تازه؛<br>همه در یک فضای منظم و شخصی.</p><div class="welcome-illustration" aria-hidden="true"><div class="illustration-circle"></div><div class="illustration-book" data-icon="book"></div><span class="illustration-badge badge-a" data-icon="message"></span><span class="illustration-badge badge-b" data-icon="graduation"></span><span class="illustration-dot dot-a"></span><span class="illustration-dot dot-b"></span></div><div class="welcome-foot"><span data-icon="shield"></span>اطلاعات شخصی شما، در فضای اختصاصی شما</div></div>
-      <div class="login-card"><div class="login-card-heading"><span class="section-kicker">به صالحین خوش آمدید</span><h2 id="loginHeading">ورود به سامانه</h2><p>برای ادامه، مشخصات حساب خود را وارد کنید.</p></div>
-        <form id="loginForm"><label for="loginKey">کلید ورود</label><div class="input-with-icon"><span data-icon="user"></span><input id="loginKey" name="username" dir="ltr" autocomplete="username" required spellcheck="false" placeholder="کلید ورود خود را وارد کنید"></div><label for="loginPassword">رمز عبور</label><div class="input-with-icon"><span data-icon="lock"></span><input id="loginPassword" name="password" type="password" dir="ltr" autocomplete="current-password" required placeholder="رمز عبور خود را وارد کنید"><button id="togglePassword" type="button" class="icon-button" aria-label="نمایش رمز عبور"><span data-icon="eye"></span></button></div><p class="login-persistence"><span data-icon="check-circle"></span>ورود شما در این دستگاه حفظ می‌شود.</p><button id="loginBtn" type="submit" class="button primary login-submit">ورود به سامانه<span data-icon="arrow-left"></span></button><p id="loginStatus" class="form-status" role="status" aria-live="polite"></p></form><div class="login-help"><span data-icon="help"></span><p>مشخصات ورود را از مسئول مدرسه دریافت کنید.<br><small>در دستگاه مشترک، پس از پایان کار از حساب خارج شوید.</small></p></div>
+      <div class="login-card"><div class="login-card-heading"><span class="section-kicker">دسترسی با QR اختصاصی</span><h2 id="loginHeading">ورود به سامانه</h2><p>برای مشاهده اطلاعات، QR اختصاصی خود را با دوربین تلفن همراه اسکن کنید.</p></div>
+        <form id="loginForm" hidden><label for="loginKey">کلید ورود</label><div class="input-with-icon"><span data-icon="user"></span><input id="loginKey" name="username" dir="ltr" autocomplete="username" required spellcheck="false" placeholder="کلید ورود خود را وارد کنید"></div><label for="loginPassword">رمز عبور</label><div class="input-with-icon"><span data-icon="lock"></span><input id="loginPassword" name="password" type="password" dir="ltr" autocomplete="current-password" required placeholder="رمز عبور خود را وارد کنید"><button id="togglePassword" type="button" class="icon-button" aria-label="نمایش رمز عبور"><span data-icon="eye"></span></button></div><p class="login-persistence"><span data-icon="check-circle"></span>ورود شما در این دستگاه حفظ می‌شود.</p><button id="loginBtn" type="submit" class="button primary login-submit">ورود به سامانه<span data-icon="arrow-left"></span></button><p id="loginStatus" class="form-status" role="status" aria-live="polite"></p></form><div class="login-help"><span data-icon="qr-code"></span><p>دانش‌آموزان از QR شخصی خود استفاده کنند؛ دبیر اصلی فایل خصوصی teacher.html را روی دستگاه مجاز باز کند.<br><small>بازکردن مستقیم نشانی سایت به‌تنهایی دسترسی به پرونده‌ها ایجاد نمی‌کند.</small></p></div>
       </div>
     </section>
     <section id="appView" class="workspace hidden">

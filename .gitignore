@@ -10,12 +10,13 @@ salehinsc-student-records-private*.csv
 private-qr-*.csv
 private-qr-cards/
 salehinsc-qr-cards/
-# Privileged staff QR exports
-salehin-staff-qr.svg
-staff-access.svg
-.staff-credentials/
-
 # QR files are access credentials, never commit them
 salehin-student-qr.svg
 *-student-qr*.svg
-*-staff-qr*.svg
+
+# Private local-only teacher entry file (contains a bearer credential; never publish)
+teacher.html
+
+# Retired public teacher QR entry and staff QR maker
+teacher/
+tools/staff-qr-maker.html

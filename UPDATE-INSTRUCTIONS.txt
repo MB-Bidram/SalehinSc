@@ -1,49 +1,32 @@
-SalehinSc — update and deployment notes
-======================================
+SalehinSc update instructions
+=============================
 
-This release changes the write architecture. It is not a simple static-file
-overlay: deploy the Cloudflare Worker and configure its URL before enabling
-writes. Read INSTALL.txt and SECURITY.md first.
+1. Back up the repository and the complete data/ directory.
+2. Copy application, Worker, workflow and documentation updates into the live
+   checkout. Keep the live data/ directory; never replace it with sample data.
+3. Remove retired teacher-QR artifacts before the first deploy. From the live
+   checkout, run:
 
-Updating an existing school
----------------------------
-1. Back up the complete repository and its data/ directory privately.
-2. Copy the application files, worker/, wrangler.toml, and .github/workflows/
-   files into the existing repository. Preserve the repository's .git/ folder.
-3. Do NOT overwrite data/portal.json or any of data/ from this ZIP. The ZIP has
-   a sample legacy administrator seed, not the school's live data or QR keys.
-4. Keep the real repository name, default branch and catalogue scope aligned.
-   This archive is configured for MB-Bidram/SalehinSc on main.
-5. Follow INSTALL.txt sections B–D to deploy the Worker, install its GitHub
-   credential as a Cloudflare secret, configure Pages and migrate the existing
-   staff QR. Verify the new staff QR before destroying the old paper.
-6. Open GitHub Actions and confirm that the Pages workflow deployed the site
-   shell. Data-only commits should not trigger a Pages rebuild.
+     npm run cleanup:retired-teacher-qr
+     git rm -f --ignore-unmatch teacher.html
 
-Fresh installation
-------------------
-Use INSTALL.txt section E only for a new, empty repository. Never run bootstrap
-replacement against a populated school. The first private bootstrap QR
-fragment is not recoverable from the public repository.
+   The cleanup command removes only the obsolete teacher/index.html and
+   tools/staff-qr-maker.html files (and empty folders). The git rm removes the
+   formerly published root redirect if it is still tracked. Do this before
+   generating/downloading the new private teacher.html. If you already have a
+   newly generated private teacher.html, move it outside the repository first.
+4. Keep the new local primary-teacher file outside Git. It is named teacher.html
+   and is ignored by .gitignore. The Pages deployment workflow also excludes it.
+5. Deploy the Worker and static Pages app. Keep GITHUB_TOKEN only in the
+   Cloudflare Worker secret.
+6. For the one-time transition from the previous shared teacher access, enter once
+   using the currently valid access method. In the roster select
+   “ساخت / تعویض فایل خصوصی دبیر”. Confirm the rotation and save the downloaded
+   teacher.html in a private folder. This invalidates the old credential. No new
+   teacher QR is generated.
+7. From then on open the local teacher.html file for teacher access.
+8. Student QR codes are unchanged. They remain individual student credentials.
 
-Local validation
-----------------
-    npm ci
-    npm run check
-    npm test
-    npm run serve
-
-Without a deployed Worker and its URL in index.html's salehin-api meta tag,
-the dashboard is intentionally read-only. No GitHub token belongs in browser
-storage, JavaScript, HTML, wrangler.toml, a QR code, or a committed file.
-
-QR printing
-------------
-The deployed teacher dashboard provides:
-- «چاپ QR دبیران» to print the shared staff-access QR;
-- «تعویض QR دبیران» to revoke the old staff QR and print a replacement;
-- «چاپ برگه‌های QR» to print cards for active students; and
-- a per-student QR action to print or rotate one student's QR.
-
-Store staff papers securely. A shared staff QR is an administrator-level
-bearer credential: anyone who has it can perform administrator actions.
+Do not commit, email, upload or share teacher.html. Anyone with a copy can act
+as the primary teacher until the credential is rotated. The file contains no
+GitHub PAT; publishing goes through the Cloudflare Worker.

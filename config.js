@@ -50,12 +50,19 @@
   }
 
   const target = nodeConfiguration() || browserConfiguration() || { owner: 'local', repo: 'portal', branch: 'main', lookupBranch: false };
+  let baseUrl = '';
+  try {
+    const scriptUrl = new URL(SCRIPT_URL || 'config.js', root.location?.href || 'https://localhost/');
+    baseUrl = new URL('./', scriptUrl).href;
+  } catch { /* Node-side configuration has no browser deployment URL. */ }
   const initial = {
     owner: target.owner,
     repo: target.repo,
     branch: target.branch || 'main',
     dataPath: DATA_PATH,
+    baseUrl,
     apiUrl: String(root.SALEHIN_API_URL || meta('salehin-api') || '').replace(/\/$/, ''),
+    schoolName: String(meta('salehin-school-name') || 'مدرسه صالحین').slice(0, 160),
     apiVersion: API_VERSION
   };
   root.SALEHIN_CONFIG = Object.freeze(initial);

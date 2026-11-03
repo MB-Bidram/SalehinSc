@@ -12,6 +12,7 @@ test('Pages deployment is data-path filtered and follows the repository default 
   assert.match(workflow, /actions\/deploy-pages@v4/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /refs\/heads\/(?:main|master)/);
+  assert.match(workflow, /--exclude='teacher\.html'/);
 });
 
 test('image downscaling keeps aspect ratio and never enlarges smaller images', () => {

@@ -88,7 +88,7 @@
     requireValue(/^[a-f0-9]{64}$/.test(String(id || '')), 'Invalid student record ID.');
     const key = unbase64(String(keyText || ''));
     requireValue(key.length === 32, 'Invalid QR access key.');
-    requireValue(!revision || /^[a-f0-9]{32}$/.test(String(revision)), 'Invalid QR revision.');
+    requireValue(!revision || /^[a-f0-9]{32}$/.test(String(revision)), 'Invalid access-credential revision.');
     const fragment = `#s=${id}&k=${base64(key).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')}`;
     return revision ? `${fragment}&r=${revision}` : fragment;
   }

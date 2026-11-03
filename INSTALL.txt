@@ -1,110 +1,134 @@
 SalehinSc — deployment and first use
 ====================================
 
-IMPORTANT: This project is a static GitHub Pages front end plus a small
-Cloudflare Worker. GitHub Pages alone cannot securely authorize writes.
-Do not paste a GitHub token into the website or into a public file.
+The public GitHub Pages site contains the student interface only. The primary
+teacher keeps a private local file named teacher.html. That file redirects to
+the public app with a short-lived-in-practice, revocable bearer credential in a
+URL fragment. The app validates the account with the Cloudflare Worker. The
+GitHub Personal Access Token remains in Cloudflare and never enters the browser.
 
-A. Preserve the live school's data
-----------------------------------
-1. Make a private backup of the current repository and its data/ directory.
-2. Copy the updated application, worker/, wrangler.toml, and workflow files
-   into the existing repository.
-3. Do NOT replace data/portal.json or data/ with the source ZIP's copy when
-   updating a live school. The ZIP contains only a sample/legacy administrator
-   seed and does not contain the school's actual student records or QR secrets.
-4. Keep the repository name, default branch and data scope aligned. This ZIP's
-   wrangler.toml targets MB-Bidram/SalehinSc, branch main, data/portal.json.
-   Change those values only when deploying to a different repository/branch.
+A. Preserve the school's data
+-----------------------------
+1. Back up the repository and its entire data/ directory.
+2. Copy the updated application, worker/, wrangler.toml, scripts and workflow
+   files into the existing repository.
+3. Do not replace data/portal.json or data/ with sample files from an archive.
+4. Keep repository owner, repository name, default branch and data scope aligned.
 
 B. Configure the server-side GitHub credential
 -----------------------------------------------
-1. Create a GitHub fine-grained Personal Access Token for ONLY the SalehinSc
-   repository. Grant:
-     - Contents: Read and write
-     - Issues: Read and write
-     - Actions: Read and write
-   Metadata read access is required by GitHub and is normally granted by default.
-2. Install Node.js (current LTS) and run from this project directory:
+1. Create a GitHub fine-grained Personal Access Token scoped only to this
+   repository. Grant Contents read/write, Issues read/write and Actions
+   read/write. Metadata read is normally granted by default.
+2. Run from the project root:
 
      npm ci
      npx wrangler login
      npx wrangler secret put GITHUB_TOKEN
      npx wrangler deploy
 
-3. Paste the token only into the Wrangler secret prompt. It is stored as a
-   Cloudflare Worker secret. It must never be put in config.js, index.html,
-   wrangler.toml, a GitHub commit, a QR code, or browser storage.
-4. Wrangler prints a Worker URL similar to:
-     https://salehinsc-api.<your-account>.workers.dev
-5. Put that exact URL in index.html's existing meta tag:
-     <meta name="salehin-api" content="https://salehinsc-api.<your-account>.workers.dev">
-   Commit the HTML change. No token goes in this meta tag.
-6. Check the health endpoint in a browser:
-     https://salehinsc-api.<your-account>.workers.dev/v1/health
-   It should return a small JSON response with ok: true.
+3. Paste the token only into Wrangler's secure prompt. It is stored as a
+   Cloudflare Worker Secret; never place it in index.html, teacher.html,
+   config.js, wrangler.toml, a URL, Git history or browser storage.
+4. Put the deployed Worker URL in index.html's salehin-api meta tag and commit
+   that public URL. It is not a secret.
+5. Check https://YOUR-WORKER.workers.dev/v1/health for {"ok":true}.
 
-The Worker configuration in wrangler.toml already restricts browser requests
- to https://mb-bidram.github.io. For a different Pages origin, change
-ALLOWED_ORIGIN to that exact origin and redeploy. The Worker talks to the one
-repository named by GITHUB_REPOSITORY; it is not a general GitHub proxy.
+The Worker is a fixed-repository publisher, not a general GitHub proxy. For a
+new Pages origin, update ALLOWED_ORIGIN in wrangler.toml and redeploy.
 
-C. Configure GitHub Actions and Pages
+C. Configure GitHub Pages and Actions
 -------------------------------------
-1. In the repository, open Settings > Pages and select GitHub Actions as the
-   publishing source.
-2. Ensure the repository default branch is main (or update wrangler.toml and
-   the data catalogue scope to match the actual default branch).
-3. Keep .github/workflows/portal-publish.yml enabled. It needs the workflow's
-   declared permissions: Contents: write and Issues: read. GitHub supplies its
-   short-lived GITHUB_TOKEN to the workflow; no additional browser token is used.
-4. Commit the application and workflow changes to the default branch. The Pages
-   workflow deploys the site shell. Later commits that only change data/** are
-   intentionally skipped by pages.yml, so score/message updates do not rebuild
-   the website. This relies on Pages using GitHub Actions, not branch publishing.
+1. In repository Settings > Pages select GitHub Actions as the source.
+2. Keep portal-publish.yml enabled with its existing minimum workflow permissions.
+3. Commit the site and Worker changes to the default branch. Commits limited to
+   data/** intentionally skip rebuilding the static site shell.
+4. The Pages workflow explicitly excludes teacher.html even if someone
+   accidentally force-adds it. Keep it ignored locally as well.
 
-D. First staff QR / migration of an existing school
----------------------------------------------------
-1. Open the deployed Pages URL and scan the school's CURRENT administrator QR.
-   Existing QR links without a separate QR grant still work as a migration path.
-2. In the staff roster, choose "چاپ QR دبیران". If the current account uses the
-   old root-key QR format, the first print automatically re-keys the encrypted
-   admin dossier and signing identity, creates a new independent QR grant, and
-   prints the new staff QR. The previous QR stops opening the current account.
-3. Collect and destroy the old staff paper after checking the new QR on a second
-   trusted device.
-4. Choose "چاپ برگه‌های QR" to export active student papers. Legacy student QR
-   grants are upgraded individually during this export. This needs their keys
-   in the administrator vault; do not clear or overwrite the live data first.
+D. Existing v4 school: transition to the private local teacher file
+--------------------------------------------------------------------
+1. Back up the live repository and data/ directory.
+2. Before the first deploy, remove the retired tracked teacher QR routes (run
+   `git rm -f --ignore-unmatch teacher.html`, `git rm -r -f --ignore-unmatch teacher`,
+   and `git rm -f --ignore-unmatch tools/staff-qr-maker.html`). Do this only for
+   the old public entry files; keep any newly generated private teacher.html
+   outside the repository.
+3. Run npm ci and npm run migrate:primary-teacher. This creates
+   data/teachers/teacher.json with the primary account ID only; it does not
+   modify students, scores, messages or attachments.
+4. Commit the new teacher directory and deploy the updated Worker/site.
+5. The primary teacher enters once using the existing authorized access method
+   on the updated site. In the roster, choose “ساخت / تعویض فایل خصوصی دبیر”.
+6. Confirm the rotation. The app re-keys the primary account and downloads a
+   new local teacher.html. The previous credential is revoked immediately.
+7. Store the downloaded file in a private folder on the teacher's trusted
+   computer. Do not commit it, upload it, email it or put it in a shared drive.
+8. From then on, open the local teacher.html file for every teacher session.
+   It redirects to the project Pages app; the hash is removed after validation.
 
-The source ZIP's catalogue contains one encrypted administrator seed, no
-student accounts, no messages/scores, and no recoverable QR secret. The old QR
-secret is intentionally not stored in the public catalogue. If the school's
-current staff QR has been lost, this archive cannot reconstruct it. Do not
-replace a populated live catalogue with the archive seed as a workaround.
+This one-time use of the old access method is a migration bridge. After the new
+file is issued, no teacher QR or public /teacher/ entry route is used.
 
-E. Fresh installation (new, empty repository only)
----------------------------------------------------
-1. Create an empty public GitHub repository (or use a repository whose data/
-   directory is confirmed empty and backed up).
-2. Clear the sample data/portal.json and sample data/students/* from this
-   working copy only after verifying that it is not the live school's data.
-3. Run:
+E. Fresh installation (empty repository only)
+----------------------------------------------
+1. Create an empty public GitHub repository. Confirm that it has no live school
+   data before initializing it.
+2. Remove sample data only in this fresh working copy, then run:
 
+     npm ci
      npm run bootstrap -- --owner OWNER --repo REPOSITORY --branch DEFAULT_BRANCH --name "مدیر مدرسه"
 
-4. The command prints one private QR fragment. Store it securely and generate
-   its QR only locally. Never commit the fragment, its QR image, or a CSV of
-   credentials. The bootstrap output is the only copy of that initial secret.
-5. Commit the generated data/portal.json and data/students/ file, plus the
-   application and workflow files. Deploy Pages and configure the Worker as
-   described above.
+3. Bootstrap creates data/teachers/teacher.json and a private local teacher.html
+   in the project root. It never prints the access key to the terminal. The
+   generated file is ignored by Git and excluded from Pages deployment.
+4. Keep teacher.html on the primary teacher's trusted device. Commit the
+   application and encrypted data files, but never teacher.html.
+5. Deploy Pages and the Worker as described above, then open teacher.html.
 
-Never run bootstrap with --replace-seed on a populated school. The script
+Never run bootstrap with --replace-seed on a populated live school. The script
 refuses to replace a matching live catalogue, but backups and human review are
 still required before changing production data.
 
-F. Local checks
+F. Local teacher file lifecycle
+-------------------------------
+- Open the local teacher.html file to enter. The file redirects to the current
+  project-relative GitHub Pages URL.
+- To replace it, enter through the current file and choose “ساخت / تعویض فایل
+  خصوصی دبیر”. The previous file becomes invalid when the account is re-keyed.
+- Keep a secure backup of the file. A copy of the old file cannot be made valid
+  again after rotation.
+- The file contains an access key, not a GitHub PAT. Protect it as carefully as
+  a school master key.
+
+G. Windows setup wizard and connection settings
+-----------------------------------------------
+1. Run setup-salehinsc.bat from the project root. It checks Git/Node/npm, asks
+   for owner, repository, branch and school name, previews changes, and
+   preserves .git and data/.
+2. It never commits, pushes, force-pushes, or stores a GitHub token.
+3. In the signed teacher session, open the gear icon > GitHub Connection >
+   Test Connection. The Worker checks its server-side credential, repository,
+   branch, catalogue, Issues API and publishing workflow.
+4. Replace/remove the PAT using Wrangler:
+
+     npx wrangler secret put GITHUB_TOKEN
+     npx wrangler secret delete GITHUB_TOKEN
+
+Security note: a static site cannot protect a token typed into browser
+JavaScript. The PAT stays server-side. The local teacher file contains only the
+teacher access credential and must remain private.
+
+H. Student QR papers
+--------------------
+- All students: roster > “چاپ برگه‌های QR”. Only active students receive cards.
+- One student: choose the student's QR action, then print the paper.
+- Replacement: from that student's QR dialog choose “تعویض و ابطال QR قبلی”.
+
+There is no teacher QR generation, QR printing or teacher QR paper. Students
+continue to use their personal QR codes.
+
+I. Local checks
 ---------------
 
      npm ci
@@ -112,19 +136,9 @@ F. Local checks
      npm test
      npm run serve
 
-Open http://127.0.0.1:8080/ for the site. Without a deployed Worker the roster
-is read-only and the page explains that setup is missing. Local preview URLs
-use synthetic data only.
+Open http://127.0.0.1:8080/ for the local site. Without a deployed Worker,
+write operations remain unavailable. The private teacher file points to the
+configured project URL and requires the deployed site and Worker to be online.
 
-QR paper printing
------------------
-- Staff: staff roster > "چاپ QR دبیران". The QR itself is the secret; no secret
-  is printed as readable text.
-- Replace a leaked/lost staff paper: "تعویض QR دبیران". This invalidates the old
-  grant immediately, re-keys the admin identity, and opens a new print sheet.
-- All students: staff roster > "چاپ برگه‌های QR". It prints active student cards.
-- One student: choose the student's "QR" action, then "چاپ برگه".
-- Student replacement: from that student's QR dialog choose "تعویض و ابطال QR قبلی".
-
-Use a private school printer. Deliver each student QR only to that student or
-family. Do not keep unnecessary printed or digital copies.
+One-time cleanup of retired teacher QR files:
+  npm run cleanup:retired-teacher-qr

@@ -1,45 +1,38 @@
-# راهنمای کار با سامانه صالحین
+# SalehinSc — teacher guide
 
-## ورود دبیران
+## Primary teacher access
 
-۱. برگهٔ مشترک «ورود معلمان» را با دوربین تلفن همراه اسکن کنید.
-۲. صفحهٔ پنل دبیران باز می‌شود؛ نیازی به نام کاربری، رمز، ایمیل یا ساخت حساب جداگانه نیست.
-۳. فهرست را با جست‌وجوی نام یا فیلتر کلاس محدود کنید.
+There is exactly one primary teacher in the current release. No teacher QR, login form, username/password, registration or teacher-selection screen is used.
 
-QR مشترک، دسترسی مدیریتی مدرسه دارد. آن را فقط به دبیران مورد اعتماد بدهید و در گروه عمومی یا روی تابلو نصب نکنید. همهٔ دارندگان این QR با یک هویت مشترک کار می‌کنند؛ بنابراین سامانه عملیات را به نام تک‌تک دبیران تفکیک نمی‌کند.
+The teacher opens a private local `teacher.html` file saved on the trusted school computer. The file redirects into the project-relative GitHub Pages application. It is not part of the Git repository and is explicitly excluded from Pages deployment.
 
-## کار با دانش‌آموزان
+### Existing school transition
 
-- **افزودن:** دکمهٔ «افزودن دانش‌آموز» را بزنید و نام و پایه/کلاس را وارد کنید. سامانه پرونده و QR اختصاصی می‌سازد.
-- **مشاهدهٔ سوابق:** در ردیف دانش‌آموز، «سوابق / ویرایش» را انتخاب کنید. نمره‌ها و پیام‌های قبلی همان دانش‌آموز نمایش داده می‌شوند.
-- **ویرایش:** نام یا کلاس را اصلاح و ذخیره کنید.
-- **غیرفعال‌سازی:** دسترسی QR را می‌بندد، اما سابقه و نمره‌ها را پاک نمی‌کند. با نمایش غیرفعال‌ها می‌توانید دوباره فعالش کنید.
-- **صدور QR:** دکمهٔ «QR» را در ردیف انتخاب کنید. برگه را چاپ کنید یا تصویر/لینک را به‌صورت خصوصی تحویل دهید.
-- **چاپ همه:** «چاپ برگه‌های QR» برگهٔ تمام دانش‌آموزان فعال را آماده می‌کند.
+1. Deploy the updated application and Worker while preserving the live `data/` directory.
+2. Enter once using the current authorized access method.
+3. From the teacher roster, choose **ساخت / تعویض فایل خصوصی دبیر**.
+4. Confirm. SalehinSc rotates the primary account root key and signing identity, revokes the prior credential and downloads `teacher.html`.
+5. Save the downloaded file in a private local folder. Do not commit or share it.
+6. Open that file for future sessions.
 
-## ثبت نمره
+The old access key is invalid after rotation. No teacher QR image is created or printed.
 
-۱. از ردیف دانش‌آموز «سوابق / ویرایش» و سپس «ثبت نمره» را بزنید؛ یا از دکمهٔ ثبت نمره در نوار ابزار استفاده کنید.
-۲. دانش‌آموز، درس یا عنوان آزمون، نمره و سقف نمره را وارد کنید.
-۳. بازخورد اختیاری است. نمره باید بین صفر و سقف تعیین‌شده باشد.
-۴. «ثبت نمره» را بزنید. نتیجه پس از انتشار در کارنامهٔ همان دانش‌آموز دیده می‌شود.
+### Fresh school
 
-## پیام به دانش‌آموز
+`npm run bootstrap` creates a local `teacher.html` file in the project root automatically. The file is ignored by Git and omitted by the Pages deployment workflow. Deploy Pages and the Worker before opening it.
 
-از ردیف او «ارسال پیام» را بزنید تا گیرنده از پیش انتخاب شده باشد. موضوع و متن را بنویسید و ارسال کنید. برای اطلاعیهٔ عمومی از «ارسال پیام» در بالای فهرست استفاده و همهٔ دانش‌آموزان را انتخاب کنید.
+## Student management
 
-## برگه و تعویض QR
+- Add a student with name and class; the application creates the encrypted student record and personal QR.
+- Search by name and filter by class.
+- Open a student's record to edit details, review score history, add scores or send messages.
+- Deactivate a student without deleting records; restore when appropriate.
+- Print one or all active student QR papers. Student QR behavior is unchanged.
 
-- برای چاپ QR دبیران، «چاپ QR دبیران» را بزنید.
-- اگر برگهٔ دبیران گم یا افشا شد، «تعویض QR دبیران» را بزنید و برگهٔ تازه را چاپ کنید. QR قبلی بلافاصله از دسترس خارج می‌شود.
-- QR یک دانش‌آموز را از پنجرهٔ QR او می‌توانید تعویض کنید. برگهٔ قبلی را جمع‌آوری کنید.
+## GitHub publishing
 
-QR خودِ کلید دسترسی است؛ هر کسی که تصویر آن را داشته باشد می‌تواند برای ورود به همان حساب تلاش کند. QRها را با سرویس‌های آنلاین ناشناس نسازید و در مخزن عمومی GitHub قرار ندهید.
+The local teacher file does not contain a GitHub Personal Access Token. The public application fetches encrypted records and sends signed write requests to the Cloudflare Worker. The Worker uses the server-side GitHub token to publish approved changes. If the Worker is unavailable, the dashboard explains the connection problem and cannot silently pretend a write succeeded.
 
-## نکتهٔ امنیتی
+## Protect the local file
 
-اگر بالای فهرست نوشته شده سرویس امن مدرسه راه‌اندازی نشده است، سامانه در حالت فقط‌خواندنی است. مسئول سامانه باید Worker را مستقر کند؛ دبیران نباید توکن GitHub دریافت یا در مرورگر وارد کنند. در صورت خطای اتصال، پس از برقراری اینترنت دوباره تازه‌سازی کنید.
-
-## تجربهٔ دانش‌آموز
-
-دانش‌آموز فقط برگهٔ QR خودش را اسکن می‌کند و نام، کلاس، نمره‌ها، بازخوردها و پیام‌های مربوط به خودش را می‌بیند. QR دانش‌آموز دیگری به پروندهٔ او دسترسی نمی‌دهد.
+Anyone with a copy of `teacher.html` can act as the primary teacher until it is replaced. Keep it off GitHub, email, chat, shared drives and public cloud folders. To revoke a lost copy, use a currently authorized session to create a replacement; the previous file immediately stops working.

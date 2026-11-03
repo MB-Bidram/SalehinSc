@@ -223,6 +223,23 @@
       try { const result = await this.fetchWorkerSnapshot(); this.admin = true; this.offline = false; return result; }
       catch (error) { this.admin = false; throw error; }
     }
+    async connectTeacher() {
+      check(this.account?.role === 'teacher', 'این دسترسی برای حساب دبیر است.', 'FORBIDDEN');
+      const proof = await this.workerProof('teacher-entry');
+      const result = await this.workerCall('/v1/teacher-entry', proof);
+      check(result?.ok === true && result.teacherId === this.account.id, 'دسترسی این دبیر در فهرست مدرسه فعال نیست.', 'FORBIDDEN');
+      this.teacherAuthorized = true;
+      this.offline = false;
+      return result;
+    }
+    async testConnection() {
+      check(this.account?.role === 'admin', 'این دسترسی برای مدیر مدرسه است.', 'FORBIDDEN');
+      const proof = await this.workerProof('connection-test');
+      const result = await this.workerCall('/v1/connection-test', proof);
+      this.admin = true;
+      this.offline = false;
+      return result;
+    }
     async snapshot() {
       if (this.account?.role === 'admin' && this.admin) {
         const snapshot = await this.fetchWorkerSnapshot();
@@ -307,7 +324,7 @@
       const entries = [];
       for (const account of catalog.students) {
         const role = account.role || 'student';
-        if (account.disabled || !['student', 'teacher'].includes(role)) continue;
+        if (account.disabled || role !== 'student') continue;
         const key = vault.students[account.id]?.keys?.[account.auth.revision];
         check(key, `The private access key for account ${account.id} is missing from this device's administrator vault. Restore the administrator key backup before exporting.`, 'KEYS_REQUIRED');
         const dossier = await this.decodeStudent(account, key);
@@ -342,20 +359,12 @@
         await this.commit(snapshot, catalog); return { id, role, qrKey: qr.key, qrRevision: qr.revision, qrFragment: base.makeQrFragment(id, qr.key, qr.revision) };
       });
     }
-    async exportStaffQrCredential() {
+    async rotateLocalTeacherAccess() {
       this.requireRole('admin');
-      let catalog = base.validateCatalog(await this.repository.readPublic(this.config.dataPath), this.scope);
-      let account = actorOf(catalog, this.account.id);
-      check(account && !account.disabled && account.role === 'admin', 'دسترسی مدیر فعال نیست.', 'SESSION_REVOKED');
-      if (!account.qrAccess) await this.rotateQr(account.id);
-      catalog = base.validateCatalog(await this.repository.readPublic(this.config.dataPath), this.scope);
-      account = actorOf(catalog, this.account.id);
-      const vault = await this.vault();
-      const rootKey = this.adminKey(vault, account.id, account.auth.revision);
-      const grant = vault.students[account.id]?.qr;
-      check(account.qrAccess && grant?.key && grant.revision === account.qrAccess.revision, 'کلید QR دبیران در این دستگاه موجود نیست؛ پشتیبان کلیدها را بازیابی کنید.', 'KEYS_REQUIRED');
-      const dossier = await this.decodeStudent(account, rootKey);
-      return { id: account.id, name: dossier.profile?.name || 'مدیر مدرسه', key: grant.key, revision: grant.revision, role: 'admin' };
+      // Re-key the primary account and its signing identity. The returned access
+      // secret is placed only in a local teacher.html file, never in a QR or public asset.
+      const rotated = await this.rotateQr(this.account.id);
+      return { id: rotated.id, key: rotated.key, revision: rotated.revision };
     }
     async rotateQr(id = this.account?.id) {
       this.requireRole('admin');
@@ -526,7 +535,7 @@
       return this.stageRequest({ operation: 'message', message: prepared.message, id: prepared.id }, prepared.files, onProgress);
     }
     async stageRequest(operation, files, onProgress = () => {}) {
-      this.requireRole('teacher');
+      this.requireRole('admin', 'teacher');
       const requestId = operation.id || C.randomId();
       const metadata = await Promise.all(files.map(async file => ({ path: file.path, size: file.content.length, hash: await digest(file.content) })));
       const proof = { format: 'SalehinSc staging request', version: 1, scope: this.scope, actorId: this.account.id, actorRevision: credentialRevision(this.account), createdAt: new Date().toISOString(), requestId, files: metadata };

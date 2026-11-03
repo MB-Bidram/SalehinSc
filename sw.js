@@ -1,6 +1,6 @@
 /* Network-first shell: prefer the newest HTML/CSS/JS; use cache only while offline. */
-const CACHE_NAME = 'salehinsc-shell-v17';
-const SHELL = ['./', './index.html', './teacher.html', './student.html', './admin.html', './styles.css', './modern.css', './config.js', './backend.js', './role-backend.js', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './assets/vazirmatn-arabic-400-normal.woff2', './assets/vazirmatn-arabic-600-normal.woff2'];
+const CACHE_NAME = 'salehinsc-shell-v18';
+const SHELL = ['./', './index.html', './student.html', './admin.html', './styles.css', './modern.css', './config.js', './backend.js', './role-backend.js', './teacher-local.js', './app.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './assets/vazirmatn-arabic-400-normal.woff2', './assets/vazirmatn-arabic-600-normal.woff2'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });

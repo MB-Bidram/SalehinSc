@@ -68,6 +68,7 @@ async function page(role = 'student') {
   class FakePortal extends Base {
     constructor() { super(role); this.calls = calls; }
     async publishMessage(input) { calls.push(input); return { status: 'published' }; }
+    async logout() { calls.push('logout'); return super.logout(); }
   }
   context.SalehinRoles.RolePortal = FakePortal;
   vm.runInContext(fs.readFileSync('config.js', 'utf8'), context);
@@ -80,10 +81,15 @@ async function page(role = 'student') {
 test('QR-first shell opens records immediately and shows teacher tools in the same interface', async () => {
   for (const role of ['student', 'teacher', 'admin']) {
     const { ui, document } = await page(role);
-    assert.equal(document.getElementById('modernGate').hidden, true);
+    assert.equal(document.getElementById('modernGate').hidden, true, document.getElementById('modernGateStatus').textContent || 'Modern dashboard did not open.');
     assert.equal(document.getElementById('modernDashboard').hidden, false);
-    assert.equal(document.getElementById('modernStudentName').textContent, ui.view.profile.name);
+    // Admin is the shared staff roster, not an individual student/teacher dossier.
+    const sharedStaff = role === 'admin';
+    assert.equal(document.getElementById('modernStudentName').textContent,
+      sharedStaff ? 'پنل دبیران' : ui.view.profile.name);
     assert.equal(document.getElementById('modernTeacherTools').hidden, role === 'student');
+    assert.equal(document.getElementById('modernRosterSection').hidden, !sharedStaff);
+    assert.equal(document.getElementById('modernToolbar').hidden, sharedStaff);
     assert.equal(document.querySelectorAll('#modernGate input,#modernGate select').length, 0);
   }
 });
@@ -99,8 +105,8 @@ test('teacher can submit a score and a message from the unified dashboard', asyn
   document.getElementById('modernScoreFeedback').value = 'پیشرفت خوب';
   await ui.saveModernScore({ preventDefault() {} });
   const score = calls.find(item => item.category === 'score');
-  assert.ok(score); assert.deepEqual(score.recipients, ['sample-student-1']);
-  assert.deepEqual(score.score, { title: 'آزمون ریاضی', score: 18, total: 20, feedback: 'پیشرفت خوب' });
+  assert.ok(score); assert.deepEqual(Array.from(score.recipients), ['sample-student-1']);
+  assert.deepEqual(JSON.parse(JSON.stringify(score.score)), { title: 'آزمون ریاضی', score: 18, total: 20, feedback: 'پیشرفت خوب' });
 
   await ui.openModernMessage();
   document.getElementById('modernMessageStudent').value = '__all__';
@@ -109,7 +115,7 @@ test('teacher can submit a score and a message from the unified dashboard', asyn
   document.getElementById('modernMessageAnnouncement').checked = true;
   await ui.saveModernMessage({ preventDefault() {} });
   const message = calls.find(item => item.category === 'announcement');
-  assert.ok(message); assert.deepEqual(message.recipients, ['sample-student-1', 'sample-student-2', 'sample-student-3']);
+  assert.ok(message); assert.deepEqual(Array.from(message.recipients), ['sample-student-1', 'sample-student-2', 'sample-student-3']);
 });
 
 test('modern message rendering treats titles and bodies as text, not executable HTML', async () => {
@@ -130,6 +136,22 @@ test('ending a QR view clears the account and returns to the scan instruction', 
   assert.equal(ui.view, null);
   assert.equal(document.getElementById('modernGate').hidden, false);
   assert.equal(document.getElementById('modernDashboard').hidden, true);
+  assert.equal(document.getElementById('modernMessages').textContent, '');
+  assert.equal(document.getElementById('modernScores').textContent, '');
+  assert.ok(document.getElementById('modernQrLink'), 'QR link input remains mounted after logout');
+});
+
+test('logout hides decrypted data even when local session cleanup fails', async () => {
+  const { ui, document, calls } = await page('teacher');
+  ui.portal.logout = async () => { calls.push('logout'); throw new Error('simulated storage failure'); };
+  await ui.logout();
+  assert.ok(calls.includes('logout'));
+  assert.equal(ui.view, null);
+  assert.equal(document.getElementById('modernGate').hidden, false);
+  assert.equal(document.getElementById('modernDashboard').hidden, true);
+  assert.equal(document.getElementById('modernMessages').textContent, '');
+  assert.equal(document.getElementById('modernScores').textContent, '');
+  assert.ok(document.getElementById('modernQrLink'), 'QR link input remains mounted after logout failure');
 });
 
 test('production shell is light-only, RTL, responsive and loads local assets', () => {
@@ -137,7 +159,15 @@ test('production shell is light-only, RTL, responsive and loads local assets', (
   const ids = Array.from(document.querySelectorAll('[id]'), node => node.id);
   assert.equal(ids.length, new Set(ids).size, 'DOM IDs must be unique');
   assert.equal(document.documentElement.getAttribute('dir'), 'rtl');
-  assert.equal(document.querySelector('.modern-brand-mark img')?.getAttribute('src'), 'Salehin-Noback.png');
+  const brandLogo = document.querySelector('.modern-brand-mark img');
+  assert.ok(document.getElementById('modernBrandLogoFull'), 'full wordmark slot must exist on the welcome screen');
+  assert.ok(brandLogo, 'compact school logo slot must exist');
+  if (brandLogo.getAttribute('src')) {
+    const logoPath = brandLogo.getAttribute('src').replace(/^\.\//, '');
+    assert.ok(fs.existsSync(logoPath), `Missing configured school logo ${logoPath}`);
+  } else {
+    assert.ok(document.getElementById('modernBrandFallback'), 'neutral fallback remains until original logo artwork is supplied');
+  }
   assert.ok(document.getElementById('modernGate'));
   assert.ok(document.getElementById('modernScores'));
   assert.ok(document.getElementById('modernMessages'));
@@ -152,9 +182,22 @@ test('production shell is light-only, RTL, responsive and loads local assets', (
   assert.doesNotMatch(styles, /prefers-color-scheme\s*:\s*dark/);
   assert.match(styles, /:focus-visible/);
   assert.match(styles, /@media\s*\(max-width:/);
+  const setupBat = fs.readFileSync('setup-salehinsc.bat', 'utf8');
+  assert.match(setupBat, /where git/i);
+  assert.match(setupBat, /where node/i);
+  assert.match(setupBat, /scripts\\setup-salehinsc\.cjs/i);
+  assert.doesNotMatch(setupBat, /push\s+--force|del\s+\/s\s+\.git/i);
   const shell = styles.match(/body>\s*\.school-header,body>\s*\.navigation-band,body>\s*#mainContent\{display:none!important\}/);
   assert.ok(shell, 'legacy login/admin shell must remain hidden behind the QR-first product UI');
-  for (const role of ['student', 'teacher', 'admin']) assert.ok(fs.readFileSync(`${role}.html`, 'utf8').includes('href="./"'));
+  // Student/admin aliases are public redirects. The teacher launcher is generated
+  // locally after setup and is deliberately not a repository or Pages asset.
+  for (const role of ['student', 'admin']) assert.ok(fs.readFileSync(`${role}.html`, 'utf8').includes('href="./"'));
+  const ignore = fs.readFileSync('.gitignore', 'utf8');
+  const pagesWorkflow = fs.readFileSync('.github/workflows/pages.yml', 'utf8');
+  const bootstrap = fs.readFileSync('scripts/bootstrap-portal.cjs', 'utf8');
+  assert.match(ignore, /^teacher\.html$/m);
+  assert.match(pagesWorkflow, /--exclude='teacher\.html'/);
+  assert.match(bootstrap, /Created local-only teacher\.html/);
   assert.equal(JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8')).start_url, './');
 });
 
